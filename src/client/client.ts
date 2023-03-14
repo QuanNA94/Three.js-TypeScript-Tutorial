@@ -21,26 +21,16 @@ const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
 const planeGeometry = new THREE.PlaneGeometry()
 const torusKnotGeometry = new THREE.TorusKnotGeometry()
 
-// const material = new THREE.MeshBasicMaterial()
+const material = new THREE.MeshBasicMaterial() //{ color: 0x00ff00, wireframe: true })
 
-/** Biến material dạng THREE.MeshBasicMaterial với 2 thuộc tính
- * color: đặt màu của vật liệu, ở đây là màu xanh lá cây (#00ff00).
- * wireframe: đặt kiểu hiển thị của vật liệu là dạng lưới, để hiển thị được cấu trúc của đối tượng khi render.
- */
-// const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({
-//     color: 0x00ff00,
-//     wireframe: true,
-// })
-// const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial() 
-const material: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
+// const texture = new THREE.TextureLoader().load("img/grid.png")
+// material.map = texture
+// const envTexture = new THREE.CubeTextureLoader().load(["img/px_50.png", "img/nx_50.png", "img/py_50.png", "img/ny_50.png", "img/pz_50.png", "img/nz_50.png"])
+// envTexture.mapping = THREE.CubeReflectionMapping
+// envTexture.mapping = THREE.CubeRefractionMapping
+// material.envMap = envTexture
 
-// const material = new THREE.MeshNormalMaterial()
-
-// material.transparent = true
-// material.opacity = 0.25
-
-// const cube = new THREE.Mesh(boxGeometry, material)
-const cube: THREE.Mesh = new THREE.Mesh(boxGeometry, material)
+const cube = new THREE.Mesh(boxGeometry, material)
 cube.position.x = 5
 scene.add(cube)
 
@@ -77,25 +67,40 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
+    combine: {
+        MultiplyOperation: THREE.MultiplyOperation,
+        MixOperation: THREE.MixOperation,
+        AddOperation: THREE.AddOperation,
+    },
 }
 
 const gui = new GUI()
 const materialFolder = gui.addFolder('THREE.Material')
-
 materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
 materialFolder.add(material, 'opacity', 0, 1, 0.01)
 materialFolder.add(material, 'depthTest')
 materialFolder.add(material, 'depthWrite')
-
-// alphaTest chỉ work với MeshBasicMaterial, not MeshNormalMaterial
 materialFolder.add(material, 'alphaTest', 0, 1, 0.01).onChange(() => updateMaterial())
 materialFolder.add(material, 'visible')
 materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
 materialFolder.open()
 
+// const data = {
+//     color: material.color.getHex(),
+// }
+
+const meshBasicMaterialFolder = gui.addFolder('THREE.MeshBasicMaterial')
+//meshBasicMaterialFolder.addColor(data, 'color').onChange(() => { material.color.setHex(Number(data.color.toString().replace('#', '0x'))) })
+//meshBasicMaterialFolder.add(material, 'wireframe')
+//meshBasicMaterialFolder.add(material, 'wireframeLinewidth', 0, 10)
+//meshBasicMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
+//meshBasicMaterialFolder.add(material, 'reflectivity', 0, 1)
+//meshBasicMaterialFolder.add(material, 'refractionRatio', 0, 1)
+meshBasicMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
+    material.combine = Number(material.combine)
     material.needsUpdate = true
 }
 
