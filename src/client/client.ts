@@ -12,7 +12,6 @@ const scene = new THREE.Scene()
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 scene.add(new THREE.AxesHelper(5))
-
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
  * Có nhiều loại camera khác nhau như PerspectiveCamera, OrthographicCamera,
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
@@ -27,6 +26,10 @@ const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
+/** `new OrbitControls(camera, renderer.domElement)`
+ * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
+ * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
+ */
 new OrbitControls(camera, renderer.domElement)
 
 /** [4] Geometry (Hình học): là một đối tượng Three.js để đại diện cho hình dạng và kích thước của một đối tượng.
@@ -44,25 +47,7 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry()
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-// const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({
-//     color: 0xc76363,
-//     wireframe: true,
-// })
-const material = new THREE.MeshBasicMaterial() //{ color: 0x00ff00, wireframe: true })
-
-const texture = new THREE.TextureLoader().load('img/grid.png')
-material.map = texture
-const envTexture = new THREE.CubeTextureLoader().load([
-    'img/px_50.png',
-    'img/nx_50.png',
-    'img/py_50.png',
-    'img/ny_50.png',
-    'img/pz_50.png',
-    'img/nz_50.png',
-])
-envTexture.mapping = THREE.CubeReflectionMapping
-// envTexture.mapping = THREE.CubeRefractionMapping
-material.envMap = envTexture
+const material = new THREE.MeshNormalMaterial()
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -89,9 +74,13 @@ scene.add(torusKnot)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
+    // 1. Cập nhật tỷ lệ khung hình (aspect) của camera theo kích thước mới của window:
     camera.aspect = window.innerWidth / window.innerHeight
+    // 2. Cập nhật ma trận chiếu (projection matrix) của camera:
     camera.updateProjectionMatrix()
+    // 3. Cập nhật kích thước của renderer để phù hợp với kích thước mới của window:
     renderer.setSize(window.innerWidth, window.innerHeight)
+    // 4. Gọi hàm render() để render lại cảnh.
     render()
 }
 
@@ -103,11 +92,6 @@ const options = {
         FrontSide: THREE.FrontSide,
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
-    },
-    combine: {
-        MultiplyOperation: THREE.MultiplyOperation,
-        MixOperation: THREE.MixOperation,
-        AddOperation: THREE.AddOperation,
     },
 }
 
@@ -122,24 +106,14 @@ materialFolder.add(material, 'visible')
 materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
 materialFolder.open()
 
-const data = {
-    color: material.color.getHex(),
-}
+const meshNormalMaterialFolder = gui.addFolder('THREE.MeshNormalMaterial ')
 
-const meshBasicMaterialFolder = gui.addFolder('THREE.MeshBasicMaterial')
-meshBasicMaterialFolder.addColor(data, 'color').onChange(() => {
-    material.color.setHex(Number(data.color.toString().replace('#', '0x')))
-})
-meshBasicMaterialFolder.add(material, 'wireframe')
-// meshBasicMaterialFolder.add(material, 'wireframeLinewidth', 0, 10)
-meshBasicMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
-meshBasicMaterialFolder.add(material, 'reflectivity', 0, 1)
-meshBasicMaterialFolder.add(material, 'refractionRatio', 0, 1)
-meshBasicMaterialFolder.open()
+meshNormalMaterialFolder.add(material, 'wireframe')
+meshNormalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshNormalMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
-    material.combine = Number(material.combine)
     material.needsUpdate = true
 }
 
