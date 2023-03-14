@@ -8,10 +8,24 @@ import { GUI } from 'dat.gui'
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
+scene.background = new THREE.Color(0xff0000)
+
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 scene.add(new THREE.AxesHelper(5))
+
+/** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
+ *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
+ */
+const light = new THREE.PointLight(0xffffff, 2)
+light.position.set(10, 10, 10)
+scene.add(light)
+
+// const light2 = new THREE.PointLight(0xffffff, 2)
+// light2.position.set(-10, -10, -10)
+// scene.add(light2)
+
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
  * Có nhiều loại camera khác nhau như PerspectiveCamera, OrthographicCamera,
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
@@ -47,7 +61,22 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry()
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material = new THREE.MeshNormalMaterial()
+const material = new THREE.MeshLambertMaterial()
+
+// const texture = new THREE.TextureLoader().load('img/grid.png')
+// material.map = texture
+// const envTexture = new THREE.CubeTextureLoader().load([
+//     'img/px_50.png',
+//     'img/nx_50.png',
+//     'img/py_50.png',
+//     'img/ny_50.png',
+//     'img/pz_50.png',
+//     'img/nz_50.png',
+// ])
+// envTexture.mapping = THREE.CubeReflectionMapping
+// // envTexture.mapping = THREE.CubeRefractionMapping
+// // material.envMap = envTexture
+// material.envMap = envTexture
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -93,10 +122,16 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
+    combine: {
+        MultiplyOperation: THREE.MultiplyOperation,
+        MixOperation: THREE.MixOperation,
+        AddOperation: THREE.AddOperation,
+    },
 }
 
 const gui = new GUI()
 const materialFolder = gui.addFolder('THREE.Material')
+
 materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
 materialFolder.add(material, 'opacity', 0, 1, 0.01)
 materialFolder.add(material, 'depthTest')
@@ -106,17 +141,32 @@ materialFolder.add(material, 'visible')
 materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
 materialFolder.open()
 
-const meshNormalMaterialFolder = gui.addFolder('THREE.MeshNormalMaterial ')
+const data = {
+    color: material.color.getHex(),
+    emissive: material.emissive.getHex(),
+}
 
-meshNormalMaterialFolder.add(material, 'wireframe')
-meshNormalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshNormalMaterialFolder.open()
+const meshLambertMaterialFolder = gui.addFolder('THREE.MeshLambertMaterial')
+
+meshLambertMaterialFolder.addColor(data, 'color').onChange(() => {
+    material.color.setHex(Number(data.color.toString().replace('#', '0x')))
+})
+meshLambertMaterialFolder.addColor(data, 'emissive').onChange(() => {
+    material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
+})
+meshLambertMaterialFolder.add(material, 'wireframe')
+meshLambertMaterialFolder.add(material, 'wireframeLinewidth', 0, 10)
+//meshLambertMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshLambertMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
+meshLambertMaterialFolder.add(material, 'reflectivity', 0, 1)
+meshLambertMaterialFolder.add(material, 'refractionRatio', 0, 1)
+meshLambertMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
+    material.combine = Number(material.combine)
     material.needsUpdate = true
 }
-
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
