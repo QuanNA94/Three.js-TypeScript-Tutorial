@@ -17,7 +17,7 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.PointLight(0xffffff, 2)
+const light = new THREE.PointLight(0xffffff, 1)
 light.position.set(10, 10, 10)
 scene.add(light)
 
@@ -55,26 +55,24 @@ const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
 const planeGeometry = new THREE.PlaneGeometry()
 const torusKnotGeometry = new THREE.TorusKnotGeometry()
 
+const threeTone = new THREE.TextureLoader().load('img/threeTone.jpg')
+threeTone.minFilter = THREE.NearestFilter
+threeTone.magFilter = THREE.NearestFilter
+
+const fourTone = new THREE.TextureLoader().load('img/fourTone.jpg')
+fourTone.minFilter = THREE.NearestFilter
+fourTone.magFilter = THREE.NearestFilter
+
+const fiveTone = new THREE.TextureLoader().load('img/fiveTone.jpg')
+fiveTone.minFilter = THREE.NearestFilter
+fiveTone.magFilter = THREE.NearestFilter
+
 /** [5] Material (Vật liệu): là một đối tượng Three.js để đại diện cho màu sắc, độ bóng và ánh sáng của một đối tượng.
  *  Vật liệu có thể được áp dụng cho hình học để tạo ra các hiệu ứng khác nhau,
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material = new THREE.MeshMatcapMaterial()
-
-// const texture = new THREE.TextureLoader().load("img/grid.png")
-// material.map = texture
-// const envTexture = new THREE.CubeTextureLoader().load(["img/px_50.png", "img/nx_50.png", "img/py_50.png", "img/ny_50.png", "img/pz_50.png", "img/nz_50.png"])
-// //envTexture.mapping = THREE.CubeReflectionMapping
-// envTexture.mapping = THREE.CubeRefractionMapping
-// material.envMap = envTexture
-
-// const matcapTexture = new THREE.TextureLoader().load('img/matcap-opal.png')
-// const matcapTexture = new THREE.TextureLoader().load("img/matcap-crystal.png")
-// const matcapTexture = new THREE.TextureLoader().load("img/matcap-gold.png")
-// const matcapTexture = new THREE.TextureLoader().load("img/matcap-red-light.png")
-const matcapTexture = new THREE.TextureLoader().load("img/matcap-green-yellow-pink.png")
-material.matcap = matcapTexture
+const material: THREE.MeshToonMaterial = new THREE.MeshToonMaterial()
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -120,11 +118,30 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
+    gradientMap: {
+        Default: null,
+        threeTone: 'threeTone',
+        fourTone: 'fourTone',
+        fiveTone: 'fiveTone',
+    },
 }
 
 const gui = new GUI()
-const materialFolder = gui.addFolder('THREE.Material')
 
+const data = {
+    lightColor: light.color.getHex(),
+    color: material.color.getHex(),
+    gradientMap: 'threeTone',
+}
+material.gradientMap = threeTone
+
+const lightFolder = gui.addFolder('THREE.Light')
+lightFolder.addColor(data, 'lightColor').onChange(() => {
+    light.color.setHex(Number(data.lightColor.toString().replace('#', '0x')))
+})
+lightFolder.add(light, 'intensity', 0, 4)
+
+const materialFolder = gui.addFolder('THREE.Material')
 materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
 materialFolder.add(material, 'opacity', 0, 1, 0.01)
 materialFolder.add(material, 'depthTest')
@@ -132,21 +149,23 @@ materialFolder.add(material, 'depthWrite')
 materialFolder.add(material, 'alphaTest', 0, 1, 0.01).onChange(() => updateMaterial())
 materialFolder.add(material, 'visible')
 materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
-materialFolder.open()
+//materialFolder.open()
 
-const data = {
-    color: material.color.getHex(),
-}
-
-const meshMatcapMaterialFolder = gui.addFolder('THREE.MeshMatcapMaterial')
-meshMatcapMaterialFolder.addColor(data, 'color').onChange(() => {
+const meshToonMaterialFolder = gui.addFolder('THREE.MeshToonMaterial')
+meshToonMaterialFolder.addColor(data, 'color').onChange(() => {
     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-meshMatcapMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshMatcapMaterialFolder.open()
+
+//shininess, specular and flatShading no longer supported in MeshToonMaterial
+
+meshToonMaterialFolder
+    .add(data, 'gradientMap', options.gradientMap)
+    .onChange(() => updateMaterial())
+meshToonMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
+    material.gradientMap = eval(data.gradientMap as string)
     material.needsUpdate = true
 }
 
