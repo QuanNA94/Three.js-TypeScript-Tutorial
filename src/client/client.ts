@@ -60,36 +60,21 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry()
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material = new THREE.MeshPhysicalMaterial({})
-material.reflectivity = 0
-material.transmission = 1.0
-material.roughness = 0.2
-material.metalness = 0
-material.clearcoat = 0.3
-material.clearcoatRoughness = 0.25
-material.color = new THREE.Color(0xffffff)
-material.ior = 1.2
-material.thickness = 10.0
+const material = new THREE.MeshMatcapMaterial()
 
-const texture = new THREE.TextureLoader().load('img/grid.png')
-material.map = texture
+// const texture = new THREE.TextureLoader().load("img/grid.png")
+// material.map = texture
+// const envTexture = new THREE.CubeTextureLoader().load(["img/px_50.png", "img/nx_50.png", "img/py_50.png", "img/ny_50.png", "img/pz_50.png", "img/nz_50.png"])
+// //envTexture.mapping = THREE.CubeReflectionMapping
+// envTexture.mapping = THREE.CubeRefractionMapping
+// material.envMap = envTexture
 
-const pmremGenerator = new THREE.PMREMGenerator(renderer)
-const envTexture = new THREE.CubeTextureLoader().load(
-    [
-        'img/px_50.png',
-        'img/nx_50.png',
-        'img/py_50.png',
-        'img/ny_50.png',
-        'img/pz_50.png',
-        'img/nz_50.png',
-    ],
-    () => {
-        material.envMap = pmremGenerator.fromCubemap(envTexture).texture
-        pmremGenerator.dispose()
-        scene.background = material.envMap
-    }
-)
+// const matcapTexture = new THREE.TextureLoader().load('img/matcap-opal.png')
+// const matcapTexture = new THREE.TextureLoader().load("img/matcap-crystal.png")
+// const matcapTexture = new THREE.TextureLoader().load("img/matcap-gold.png")
+// const matcapTexture = new THREE.TextureLoader().load("img/matcap-red-light.png")
+const matcapTexture = new THREE.TextureLoader().load("img/matcap-green-yellow-pink.png")
+material.matcap = matcapTexture
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -151,29 +136,14 @@ materialFolder.open()
 
 const data = {
     color: material.color.getHex(),
-    emissive: material.emissive.getHex(),
 }
 
-const meshPhysicalMaterialFolder = gui.addFolder('THREE.MeshPhysicalMaterial')
-
-meshPhysicalMaterialFolder.addColor(data, 'color').onChange(() => {
+const meshMatcapMaterialFolder = gui.addFolder('THREE.MeshMatcapMaterial')
+meshMatcapMaterialFolder.addColor(data, 'color').onChange(() => {
     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-meshPhysicalMaterialFolder.addColor(data, 'emissive').onChange(() => {
-    material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
-})
-
-meshPhysicalMaterialFolder.add(material, 'wireframe')
-meshPhysicalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshPhysicalMaterialFolder.add(material, 'reflectivity', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'roughness', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'metalness', 0, 1)
-meshPhysicalMaterialFolder.add(material, 'clearcoat', 0, 1, 0.01)
-meshPhysicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
-meshPhysicalMaterialFolder.add(material, 'transmission', 0, 1, 0.01)
-meshPhysicalMaterialFolder.add(material, 'ior', 1.0, 2.333)
-meshPhysicalMaterialFolder.add(material, 'thickness', 0, 10.0)
-meshPhysicalMaterialFolder.open()
+meshMatcapMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshMatcapMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
@@ -184,8 +154,8 @@ function updateMaterial() {
 function animate() {
     requestAnimationFrame(animate)
 
-    torusKnot.rotation.x += 0.01
-    torusKnot.rotation.y += 0.01
+    // torusKnot.rotation.x += 0.01
+    // torusKnot.rotation.y += 0.01
 
     render()
 
