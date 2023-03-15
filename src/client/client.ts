@@ -21,10 +21,6 @@ const light = new THREE.PointLight(0xffffff, 2)
 light.position.set(10, 10, 10)
 scene.add(light)
 
-const light2 = new THREE.PointLight(0xffffff, 2)
-light2.position.set(-10, -10, -10)
-scene.add(light2)
-
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
  * Có nhiều loại camera khác nhau như PerspectiveCamera, OrthographicCamera,
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
@@ -37,6 +33,10 @@ camera.position.z = 3
  */
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
+/** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
+ *  Trong trường hợp này, renderer.domElement là một đối tượng HTMLCanvasElement,
+ *  và nó sẽ được thêm vào thẻ body để hiển thị kết quả cuối cùng của các hoạt động đồ họa.
+ */
 document.body.appendChild(renderer.domElement)
 
 /** `new OrbitControls(camera, renderer.domElement)`
@@ -60,22 +60,25 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry()
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material = new THREE.MeshPhongMaterial()
+const material = new THREE.MeshStandardMaterial()
 
 const texture = new THREE.TextureLoader().load('img/grid.png')
 material.map = texture
-const envTexture = new THREE.CubeTextureLoader().load([
-    'img/px_50.png',
-    'img/nx_50.png',
-    'img/py_50.png',
-    'img/ny_50.png',
-    'img/pz_50.png',
-    'img/nz_50.png',
-])
-envTexture.mapping = THREE.CubeReflectionMapping
-// envTexture.mapping = THREE.CubeRefractionMapping
-// material.envMap = envTexture
-material.envMap = envTexture
+const pmremGenerator = new THREE.PMREMGenerator(renderer)
+const envTexture = new THREE.CubeTextureLoader().load(
+    [
+        'img/px_50.png',
+        'img/nx_50.png',
+        'img/py_50.png',
+        'img/ny_50.png',
+        'img/pz_50.png',
+        'img/nz_50.png',
+    ],
+    () => {
+        material.envMap = pmremGenerator.fromCubemap(envTexture).texture
+        pmremGenerator.dispose()
+    }
+)
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -121,11 +124,6 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
-    combine: {
-        MultiplyOperation: THREE.MultiplyOperation,
-        MixOperation: THREE.MixOperation,
-        AddOperation: THREE.AddOperation,
-    },
 }
 
 const gui = new GUI()
@@ -143,30 +141,25 @@ materialFolder.open()
 const data = {
     color: material.color.getHex(),
     emissive: material.emissive.getHex(),
-    specular: material.specular.getHex() // shine 
 }
 
-const meshPhongMaterialFolder = gui.addFolder('THREE.MeshPhongMaterial')
+const meshStandardMaterialFolder = gui.addFolder('THREE.MeshStandardMaterial')
 
-meshPhongMaterialFolder.addColor(data, 'color').onChange(() => {
+meshStandardMaterialFolder.addColor(data, 'color').onChange(() => {
     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-meshPhongMaterialFolder.addColor(data, 'emissive').onChange(() => {
+meshStandardMaterialFolder.addColor(data, 'emissive').onChange(() => {
     material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
 })
-meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => { material.specular.setHex(Number(data.specular.toString().replace('#', '0x'))) });
-meshPhongMaterialFolder.add(material, 'shininess', 0, 1024);
-meshPhongMaterialFolder.add(material, 'wireframe')
-meshPhongMaterialFolder.add(material, 'wireframeLinewidth', 0, 10)
-meshPhongMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshPhongMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
-meshPhongMaterialFolder.add(material, 'reflectivity', 0, 1)
-meshPhongMaterialFolder.add(material, 'refractionRatio', 0, 1)
-meshPhongMaterialFolder.open()
+
+meshStandardMaterialFolder.add(material, 'wireframe')
+meshStandardMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshStandardMaterialFolder.add(material, 'roughness', 0, 1)
+meshStandardMaterialFolder.add(material, 'metalness', 0, 1)
+meshStandardMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
-    material.combine = Number(material.combine)
     material.needsUpdate = true
 }
 
