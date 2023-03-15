@@ -60,10 +60,20 @@ const torusKnotGeometry = new THREE.TorusKnotGeometry()
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material = new THREE.MeshStandardMaterial()
+const material = new THREE.MeshPhysicalMaterial({})
+material.reflectivity = 0
+material.transmission = 1.0
+material.roughness = 0.2
+material.metalness = 0
+material.clearcoat = 0.3
+material.clearcoatRoughness = 0.25
+material.color = new THREE.Color(0xffffff)
+material.ior = 1.2
+material.thickness = 10.0
 
 const texture = new THREE.TextureLoader().load('img/grid.png')
 material.map = texture
+
 const pmremGenerator = new THREE.PMREMGenerator(renderer)
 const envTexture = new THREE.CubeTextureLoader().load(
     [
@@ -77,6 +87,7 @@ const envTexture = new THREE.CubeTextureLoader().load(
     () => {
         material.envMap = pmremGenerator.fromCubemap(envTexture).texture
         pmremGenerator.dispose()
+        scene.background = material.envMap
     }
 )
 
@@ -143,20 +154,26 @@ const data = {
     emissive: material.emissive.getHex(),
 }
 
-const meshStandardMaterialFolder = gui.addFolder('THREE.MeshStandardMaterial')
+const meshPhysicalMaterialFolder = gui.addFolder('THREE.MeshPhysicalMaterial')
 
-meshStandardMaterialFolder.addColor(data, 'color').onChange(() => {
+meshPhysicalMaterialFolder.addColor(data, 'color').onChange(() => {
     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-meshStandardMaterialFolder.addColor(data, 'emissive').onChange(() => {
+meshPhysicalMaterialFolder.addColor(data, 'emissive').onChange(() => {
     material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
 })
 
-meshStandardMaterialFolder.add(material, 'wireframe')
-meshStandardMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshStandardMaterialFolder.add(material, 'roughness', 0, 1)
-meshStandardMaterialFolder.add(material, 'metalness', 0, 1)
-meshStandardMaterialFolder.open()
+meshPhysicalMaterialFolder.add(material, 'wireframe')
+meshPhysicalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshPhysicalMaterialFolder.add(material, 'reflectivity', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'roughness', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'metalness', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'clearcoat', 0, 1, 0.01)
+meshPhysicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
+meshPhysicalMaterialFolder.add(material, 'transmission', 0, 1, 0.01)
+meshPhysicalMaterialFolder.add(material, 'ior', 1.0, 2.333)
+meshPhysicalMaterialFolder.add(material, 'thickness', 0, 10.0)
+meshPhysicalMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
@@ -166,6 +183,9 @@ function updateMaterial() {
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
+
+    torusKnot.rotation.x += 0.01
+    torusKnot.rotation.y += 0.01
 
     render()
 
