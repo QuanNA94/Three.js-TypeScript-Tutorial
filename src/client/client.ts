@@ -18,7 +18,7 @@ scene.add(new THREE.AxesHelper(5))
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
 const light = new THREE.PointLight(0xffffff, 1)
-light.position.set(10, 10, 10)
+light.position.set(0, 5, 10)
 scene.add(light)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -43,59 +43,107 @@ document.body.appendChild(renderer.domElement)
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
-new OrbitControls(camera, renderer.domElement)
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.screenSpacePanning = true // default is now true since three r118. Used so that panning up and down doesn't zoom in/out
+//controls.addEventListener('change', render)
 
 /** [4] Geometry (Hình học): là một đối tượng Three.js để đại diện cho hình dạng và kích thước của một đối tượng.
  *  Geometry có thể được sử dụng để tạo ra các hình dạng phức tạp
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
-const boxGeometry = new THREE.BoxGeometry()
-const sphereGeometry = new THREE.SphereGeometry()
-const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
-const planeGeometry = new THREE.PlaneGeometry()
-const torusKnotGeometry = new THREE.TorusKnotGeometry()
+// const boxGeometry = new THREE.BoxGeometry()
+// const sphereGeometry = new THREE.SphereGeometry()
+// const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
+// const planeGeometry = new THREE.PlaneGeometry()
 
-const threeTone = new THREE.TextureLoader().load('img/threeTone.jpg')
-threeTone.minFilter = THREE.NearestFilter
-threeTone.magFilter = THREE.NearestFilter
+const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
 
-const fourTone = new THREE.TextureLoader().load('img/fourTone.jpg')
-fourTone.minFilter = THREE.NearestFilter
-fourTone.magFilter = THREE.NearestFilter
+// const torusKnotGeometry = new THREE.TorusKnotGeometry()
 
-const fiveTone = new THREE.TextureLoader().load('img/fiveTone.jpg')
-fiveTone.minFilter = THREE.NearestFilter
-fiveTone.magFilter = THREE.NearestFilter
+// =================================================================================
+
+// const threeTone = new THREE.TextureLoader().load('img/threeTone.jpg')
+// threeTone.minFilter = THREE.NearestFilter
+// threeTone.magFilter = THREE.NearestFilter
+
+// const fourTone = new THREE.TextureLoader().load('img/fourTone.jpg')
+// fourTone.minFilter = THREE.NearestFilter
+// fourTone.magFilter = THREE.NearestFilter
+
+// const fiveTone = new THREE.TextureLoader().load('img/fiveTone.jpg')
+// fiveTone.minFilter = THREE.NearestFilter
+// fiveTone.magFilter = THREE.NearestFilter
+
+// =================================================================================
 
 /** [5] Material (Vật liệu): là một đối tượng Three.js để đại diện cho màu sắc, độ bóng và ánh sáng của một đối tượng.
  *  Vật liệu có thể được áp dụng cho hình học để tạo ra các hiệu ứng khác nhau,
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material: THREE.MeshToonMaterial = new THREE.MeshToonMaterial()
+const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial()
+
+// const texture = new THREE.TextureLoader().load('img/grid.png')
+const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
+material.map = texture
+
+/** envTexture là một CubeTexture được tạo ra từ 6 hình ảnh ở dạng khối lập phương,
+ *  tạo thành một "cube map" để biểu diễn môi trường xung quanh vật thể 3D.
+ */
+// const envTexture = new THREE.CubeTextureLoader().load([
+//     'img/px_50.png',
+//     'img/nx_50.png',
+//     'img/py_50.png',
+//     'img/ny_50.png',
+//     'img/pz_50.png',
+//     'img/nz_50.png',
+// ])
+const envTexture = new THREE.CubeTextureLoader().load([
+    'img/px_eso0932a.jpg',
+    'img/nx_eso0932a.jpg',
+    'img/py_eso0932a.jpg',
+    'img/ny_eso0932a.jpg',
+    'img/pz_eso0932a.jpg',
+    'img/nz_eso0932a.jpg',
+])
+envTexture.mapping = THREE.CubeReflectionMapping
+
+/** Để áp dụng CubeTexture này vào vật liệu,
+ * ta gán giá trị của envTexture vào thuộc tính envMap của vật liệu (material.envMap = envTexture).
+ */
+material.envMap = envTexture
+
+// const specularTexture = new THREE.TextureLoader().load('img/grayscale-test.png')
+const specularTexture = new THREE.TextureLoader().load('img/earthSpecular.jpg')
+material.specularMap = specularTexture
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
  */
-const cube = new THREE.Mesh(boxGeometry, material)
-cube.position.x = 5
-scene.add(cube)
 
-const sphere = new THREE.Mesh(sphereGeometry, material)
-sphere.position.x = 3
-scene.add(sphere)
+// =================================================================================
 
-const icosahedron = new THREE.Mesh(icosahedronGeometry, material)
-icosahedron.position.x = 0
-scene.add(icosahedron)
+// const cube = new THREE.Mesh(boxGeometry, material)
+// cube.position.x = 5
+// scene.add(cube)
+
+// const sphere = new THREE.Mesh(sphereGeometry, material)
+// sphere.position.x = 3
+// scene.add(sphere)
+
+// const icosahedron = new THREE.Mesh(icosahedronGeometry, material)
+// icosahedron.position.x = 0
+// scene.add(icosahedron)
 
 const plane = new THREE.Mesh(planeGeometry, material)
-plane.position.x = -2
+// plane.position.x = -2
 scene.add(plane)
 
-const torusKnot = new THREE.Mesh(torusKnotGeometry, material)
-torusKnot.position.x = -5
-scene.add(torusKnot)
+// const torusKnot = new THREE.Mesh(torusKnotGeometry, material)
+// torusKnot.position.x = -5
+// scene.add(torusKnot)
+
+// =================================================================================
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -118,28 +166,36 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
-    gradientMap: {
-        Default: null,
-        threeTone: 'threeTone',
-        fourTone: 'fourTone',
-        fiveTone: 'fiveTone',
+    combine: {
+        MultiplyOperation: THREE.MultiplyOperation,
+        MixOperation: THREE.MixOperation,
+        AddOperation: THREE.AddOperation,
     },
+    // gradientMap: {
+    //     Default: null,
+    //     threeTone: 'threeTone',
+    //     fourTone: 'fourTone',
+    //     fiveTone: 'fiveTone',
+    // },
 }
 
 const gui = new GUI()
 
 const data = {
-    lightColor: light.color.getHex(),
     color: material.color.getHex(),
-    gradientMap: 'threeTone',
+    // lightColor: light.color.getHex(),
+    // gradientMap: 'threeTone',
+    emissive: material.emissive.getHex(),
+    specular: material.specular.getHex(),
 }
-material.gradientMap = threeTone
 
-const lightFolder = gui.addFolder('THREE.Light')
-lightFolder.addColor(data, 'lightColor').onChange(() => {
-    light.color.setHex(Number(data.lightColor.toString().replace('#', '0x')))
-})
-lightFolder.add(light, 'intensity', 0, 4)
+// material.gradientMap = threeTone
+
+// const lightFolder = gui.addFolder('THREE.Light')
+// lightFolder.addColor(data, 'lightColor').onChange(() => {
+//     light.color.setHex(Number(data.lightColor.toString().replace('#', '0x')))
+// })
+// lightFolder.add(light, 'intensity', 0, 4)
 
 const materialFolder = gui.addFolder('THREE.Material')
 materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
@@ -151,21 +207,47 @@ materialFolder.add(material, 'visible')
 materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
 //materialFolder.open()
 
-const meshToonMaterialFolder = gui.addFolder('THREE.MeshToonMaterial')
-meshToonMaterialFolder.addColor(data, 'color').onChange(() => {
-    material.color.setHex(Number(data.color.toString().replace('#', '0x')))
-})
+// =================================================================================
+
+// const meshToonMaterialFolder = gui.addFolder('THREE.MeshToonMaterial')
+// meshToonMaterialFolder.addColor(data, 'color').onChange(() => {
+//     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
+// })
 
 //shininess, specular and flatShading no longer supported in MeshToonMaterial
 
-meshToonMaterialFolder
-    .add(data, 'gradientMap', options.gradientMap)
-    .onChange(() => updateMaterial())
-meshToonMaterialFolder.open()
+// meshToonMaterialFolder
+//     .add(data, 'gradientMap', options.gradientMap)
+//     .onChange(() => updateMaterial())
+// meshToonMaterialFolder.open()
+
+// =================================================================================
+
+/** Đoạn code trên sử dụng thư viện GUI của Three.js để tạo một folder mới có tên là 'THREE.MeshPhongMaterial'.
+ * Folder này sẽ chứa các control để điều chỉnh các thuộc tính của một vật liệu MeshPhong trong Three.js.
+ */
+const meshPhongMaterialFolder = gui.addFolder('THREE.MeshPhongMaterial')
+
+meshPhongMaterialFolder.addColor(data, 'color').onChange(() => {
+    material.color.setHex(Number(data.color.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.addColor(data, 'emissive').onChange(() => {
+    material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => {
+    material.specular.setHex(Number(data.specular.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.add(material, 'shininess', 0, 1024)
+meshPhongMaterialFolder.add(material, 'wireframe')
+meshPhongMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshPhongMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
+meshPhongMaterialFolder.add(material, 'reflectivity', 0, 1)
+meshPhongMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
-    material.gradientMap = eval(data.gradientMap as string)
+    material.combine = Number(material.combine)
+    // material.gradientMap = eval(data.gradientMap as string)
     material.needsUpdate = true
 }
 
