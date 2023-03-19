@@ -17,8 +17,8 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.PointLight(0xffffff, 1)
-light.position.set(0, 2, 5)
+const light = new THREE.PointLight(0xffffff, 2)
+light.position.set(0, 5, 10)
 scene.add(light)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -26,7 +26,7 @@ scene.add(light)
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
  */
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-camera.position.z = 1
+camera.position.z = 3
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
@@ -44,8 +44,8 @@ document.body.appendChild(renderer.domElement)
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
 const controls = new OrbitControls(camera, renderer.domElement)
-// controls.screenSpacePanning = true // default is now true since three r118. Used so that panning up and down doesn't zoom in/out
-controls.enableDamping = true
+controls.screenSpacePanning = true // default is now true since three r118. Used so that panning up and down doesn't zoom in/out
+// controls.enableDamping = true
 //controls.addEventListener('change', render)
 
 /** [4] Geometry (Hình học): là một đối tượng Three.js để đại diện cho hình dạng và kích thước của một đối tượng.
@@ -57,8 +57,8 @@ controls.enableDamping = true
 // const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
 // const planeGeometry = new THREE.PlaneGeometry()
 
-const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
-
+// const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
+const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8, 360, 180)
 // const torusKnotGeometry = new THREE.TorusKnotGeometry()
 
 // =================================================================================
@@ -92,7 +92,7 @@ const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial()
  *  sau đó hàm .load() được gọi với đường dẫn của tệp ảnh "img/worldColour.5400x2700.jpg" để tải ảnh.
  */
 const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
-// material.map = texture
+material.map = texture
 
 // =================================================================================
 // // 2. Tải và gán bản đồ bump (bump map) cho vật liệu:
@@ -104,9 +104,8 @@ const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
 // material.bumpScale = 0.015
 // =================================================================================
 
-const normalTexture = new THREE.TextureLoader().load('img/earth_normalmap_8192x4096.jpg')
-material.normalMap = normalTexture
-material.normalScale.set(2, 2) // left_right_shadow && up_down_shadow
+const displacementMap = new THREE.TextureLoader().load('img/gebco_bathy.5400x2700_8bit.jpg')
+material.displacementMap = displacementMap
 
 // =================================================================================
 
@@ -191,106 +190,102 @@ function onWindowResize() {
 const stats = Stats()
 document.body.appendChild(stats.dom)
 
-// const options = {
-//     side: {
-//         FrontSide: THREE.FrontSide,
-//         BackSide: THREE.BackSide,
-//         DoubleSide: THREE.DoubleSide,
-//     },
-//     // combine: {
-//     //     MultiplyOperation: THREE.MultiplyOperation,
-//     //     MixOperation: THREE.MixOperation,
-//     //     AddOperation: THREE.AddOperation,
-//     // },
-//     // gradientMap: {
-//     //     Default: null,
-//     //     threeTone: 'threeTone',
-//     //     fourTone: 'fourTone',
-//     //     fiveTone: 'fiveTone',
-//     // },
-// }
+const options = {
+    side: {
+        FrontSide: THREE.FrontSide,
+        BackSide: THREE.BackSide,
+        DoubleSide: THREE.DoubleSide,
+    },
+    // combine: {
+    //     MultiplyOperation: THREE.MultiplyOperation,
+    //     MixOperation: THREE.MixOperation,
+    //     AddOperation: THREE.AddOperation,
+    // },
+    // gradientMap: {
+    //     Default: null,
+    //     threeTone: 'threeTone',
+    //     fourTone: 'fourTone',
+    //     fiveTone: 'fiveTone',
+    // },
+}
 
 const gui = new GUI()
-gui.add(material.normalScale, 'x', 0, 10, 0.01)
-gui.add(material.normalScale, 'y', 0, 10, 0.01)
-gui.add(light.position, 'x', -20, 20).name('Light Pos X')
 
-// gui.add(material, 'bumpScale', 0, 1, 0.01)
-
-// const data = {
-//     color: material.color.getHex(),
-//     // lightColor: light.color.getHex(),
-//     // gradientMap: 'threeTone',
-//     emissive: material.emissive.getHex(),
-//     // specular: material.specular.getHex(),
-// }
-
-// material.gradientMap = threeTone
-
-// const lightFolder = gui.addFolder('THREE.Light')
-// lightFolder.addColor(data, 'lightColor').onChange(() => {
-//     light.color.setHex(Number(data.lightColor.toString().replace('#', '0x')))
-// })
-// lightFolder.add(light, 'intensity', 0, 4)
-
-// const materialFolder = gui.addFolder('THREE.Material')
-// materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
-// materialFolder.add(material, 'opacity', 0, 1, 0.01)
-// materialFolder.add(material, 'depthTest')
-// materialFolder.add(material, 'depthWrite')
-// materialFolder.add(material, 'alphaTest', 0, 1, 0.01).onChange(() => updateMaterial())
-// materialFolder.add(material, 'visible')
-// materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
-// //materialFolder.open()
+const materialFolder = gui.addFolder('THREE.Material')
+materialFolder.add(material, 'transparent').onChange(() => (material.needsUpdate = true))
+materialFolder.add(material, 'opacity', 0, 1, 0.01)
+materialFolder.add(material, 'depthTest')
+materialFolder.add(material, 'depthWrite')
+materialFolder.add(material, 'alphaTest', 0, 1, 0.01).onChange(() => updateMaterial())
+materialFolder.add(material, 'visible')
+materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial())
+//materialFolder.open()
 
 // =================================================================================
 
-// const meshToonMaterialFolder = gui.addFolder('THREE.MeshToonMaterial')
-// meshToonMaterialFolder.addColor(data, 'color').onChange(() => {
-//     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
-// })
-
-//shininess, specular and flatShading no longer supported in MeshToonMaterial
-
-// meshToonMaterialFolder
-//     .add(data, 'gradientMap', options.gradientMap)
-//     .onChange(() => updateMaterial())
-// meshToonMaterialFolder.open()
+const data = {
+    color: material.color.getHex(),
+    // lightColor: light.color.getHex(),
+    // gradientMap: 'threeTone',
+    emissive: material.emissive.getHex(),
+    specular: material.specular.getHex(),
+}
 
 // =================================================================================
 
 /** Đoạn code trên sử dụng thư viện GUI của Three.js để tạo một folder mới có tên là 'THREE.MeshPhongMaterial'.
  * Folder này sẽ chứa các control để điều chỉnh các thuộc tính của một vật liệu MeshPhong trong Three.js.
  */
-// const meshPhysicalMaterialFolder = gui.addFolder('THREE.meshPhysicalMaterialFolder ')
+const meshPhongMaterialFolder = gui.addFolder('THREE.meshPhongMaterialFolder')
 
-// meshPhysicalMaterialFolder.addColor(data, 'color').onChange(() => {
-//     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
-// })
-// meshPhysicalMaterialFolder.addColor(data, 'emissive').onChange(() => {
-//     material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
-// })
-// // meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => {
-// //     material.specular.setHex(Number(data.specular.toString().replace('#', '0x')))
-// // })
-// // meshPhongMaterialFolder.add(material, 'shininess', 0, 1024)
-// meshPhysicalMaterialFolder.add(material, 'wireframe')
-// meshPhysicalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-// meshPhysicalMaterialFolder.add(material, 'reflectivity', 0, 1)
-// meshPhysicalMaterialFolder.add(material, 'envMapIntensity', 0, 1)
-// meshPhysicalMaterialFolder.add(material, 'roughness', 0, 1)
-// meshPhysicalMaterialFolder.add(material, 'metalness', 0, 1)
-// meshPhysicalMaterialFolder.add(material, 'clearcoat', 0, 1, 0.01)
-// meshPhysicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
-// // meshPhongMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
-// meshPhysicalMaterialFolder.open()
+meshPhongMaterialFolder.addColor(data, 'color').onChange(() => {
+    material.color.setHex(Number(data.color.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.addColor(data, 'emissive').onChange(() => {
+    material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => {
+    material.specular.setHex(Number(data.specular.toString().replace('#', '0x')))
+})
+meshPhongMaterialFolder.add(material, 'shininess', 0, 1024)
+meshPhongMaterialFolder.add(material, 'wireframe')
+meshPhongMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshPhongMaterialFolder.add(material, 'reflectivity', 0, 1)
+meshPhongMaterialFolder.add(material, 'refractionRatio', 0, 1)
+meshPhongMaterialFolder.add(material, 'displacementScale', 0, 1, 0.01)
+meshPhongMaterialFolder.add(material, 'displacementBias', -1, 1, 0.01)
+meshPhongMaterialFolder.open()
 
-// function updateMaterial() {
-//     material.side = Number(material.side)
-//     // material.combine = Number(material.combine)
-//     // material.gradientMap = eval(data.gradientMap as string)
-//     material.needsUpdate = true
-// }
+function updateMaterial() {
+    material.side = Number(material.side)
+    // material.combine = Number(material.combine)
+    // material.gradientMap = eval(data.gradientMap as string)
+    material.needsUpdate = true
+}
+
+const planeData = {
+    width: 3.6,
+    height: 1.8,
+    widthSegments: 360,
+    heightSegments: 180,
+}
+const planePropertiesFolder = gui.addFolder('PlaneGeometry')
+//planePropertiesFolder.add(planeData, 'width', 1, 30).onChange(regeneratePlaneGeometry)
+//planePropertiesFolder.add(planeData, 'height', 1, 30).onChange(regeneratePlaneGeometry)
+planePropertiesFolder.add(planeData, 'widthSegments', 1, 360).onChange(regeneratePlaneGeometry)
+planePropertiesFolder.add(planeData, 'heightSegments', 1, 180).onChange(regeneratePlaneGeometry)
+planePropertiesFolder.open()
+
+function regeneratePlaneGeometry() {
+    let newGeometry = new THREE.PlaneGeometry(
+        planeData.width,
+        planeData.height,
+        planeData.widthSegments,
+        planeData.heightSegments
+    )
+    plane.geometry.dispose()
+    plane.geometry = newGeometry
+}
 
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
