@@ -18,7 +18,7 @@ scene.add(new THREE.AxesHelper(5))
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
 const light = new THREE.PointLight(0xffffff, 1)
-light.position.set(0, 5, 10)
+light.position.set(0, 2, 5)
 scene.add(light)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -26,7 +26,7 @@ scene.add(light)
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
  */
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-camera.position.z = 3
+camera.position.z = 1
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
@@ -92,15 +92,21 @@ const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial()
  *  sau đó hàm .load() được gọi với đường dẫn của tệp ảnh "img/worldColour.5400x2700.jpg" để tải ảnh.
  */
 const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
-material.map = texture
+// material.map = texture
 
-// 2. Tải và gán bản đồ bump (bump map) cho vật liệu:
-const bumpTexture = new THREE.TextureLoader().load('img/earth_bumpmap.jpg')
-material.bumpMap = bumpTexture
-/** giá trị "bumpScale" được thiết lập là 0.015
- * để điều chỉnh độ sâu của các phần của vật thể có hiệu ứng đồ họa bị lồi hoặc lõm dựa trên bản đồ bump.
- */
-material.bumpScale = 0.015
+// =================================================================================
+// // 2. Tải và gán bản đồ bump (bump map) cho vật liệu:
+// const bumpTexture = new THREE.TextureLoader().load('img/earth_bumpmap.jpg')
+// material.bumpMap = bumpTexture
+// /** giá trị "bumpScale" được thiết lập là 0.015
+//  * để điều chỉnh độ sâu của các phần của vật thể có hiệu ứng đồ họa bị lồi hoặc lõm dựa trên bản đồ bump.
+//  */
+// material.bumpScale = 0.015
+// =================================================================================
+
+const normalTexture = new THREE.TextureLoader().load('img/earth_normalmap_8192x4096.jpg')
+material.normalMap = normalTexture
+material.normalScale.set(2, 2) // left_right_shadow && up_down_shadow
 
 // =================================================================================
 
@@ -205,7 +211,11 @@ document.body.appendChild(stats.dom)
 // }
 
 const gui = new GUI()
-gui.add(material, 'bumpScale', 0, 1, 0.01)
+gui.add(material.normalScale, 'x', 0, 10, 0.01)
+gui.add(material.normalScale, 'y', 0, 10, 0.01)
+gui.add(light.position, 'x', -20, 20).name('Light Pos X')
+
+// gui.add(material, 'bumpScale', 0, 1, 0.01)
 
 // const data = {
 //     color: material.color.getHex(),
