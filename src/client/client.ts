@@ -3,6 +3,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
+/** The roughnessMap and metalnessMap are the specularMap equivalents for the MeshStandardMaterial and MeshPhysicalMaterial materials. */
+
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
  * ánh sáng và hiệu ứng cần được vẽ trên màn hình.
  */
@@ -81,7 +83,7 @@ const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
 
-const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial()
+const material: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
 
 // const texture = new THREE.TextureLoader().load('img/grid.png')
 const texture = new THREE.TextureLoader().load('img/worldColour.5400x2700.jpg')
@@ -115,7 +117,10 @@ material.envMap = envTexture
 
 // const specularTexture = new THREE.TextureLoader().load('img/grayscale-test.png')
 const specularTexture = new THREE.TextureLoader().load('img/earthSpecular.jpg')
-material.specularMap = specularTexture
+// material.specularMap = specularTexture
+
+// material.roughnessMap = specularTexture
+material.metalnessMap = specularTexture
 
 /** [6] Mesh (Lưới): là một đối tượng Three.js để kết hợp geometry và material của một đối tượng.
  *  Mesh có thể được đặt trong scene và sẽ được kết xuất bởi trình kết xuất.
@@ -135,7 +140,7 @@ material.specularMap = specularTexture
 // icosahedron.position.x = 0
 // scene.add(icosahedron)
 
-const plane = new THREE.Mesh(planeGeometry, material)
+const plane: THREE.Mesh = new THREE.Mesh(planeGeometry, material)
 // plane.position.x = -2
 scene.add(plane)
 
@@ -155,6 +160,9 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight)
     // 4. Gọi hàm render() để render lại cảnh.
     render()
+    /** Những bước này giúp đảm bảo rằng cảnh được hiển thị đúng tỷ lệ khung hình
+     * và độ phân giải trên màn hình khi kích thước của cửa sổ trình duyệt thay đổi.
+     */
 }
 
 const stats = Stats()
@@ -166,11 +174,11 @@ const options = {
         BackSide: THREE.BackSide,
         DoubleSide: THREE.DoubleSide,
     },
-    combine: {
-        MultiplyOperation: THREE.MultiplyOperation,
-        MixOperation: THREE.MixOperation,
-        AddOperation: THREE.AddOperation,
-    },
+    // combine: {
+    //     MultiplyOperation: THREE.MultiplyOperation,
+    //     MixOperation: THREE.MixOperation,
+    //     AddOperation: THREE.AddOperation,
+    // },
     // gradientMap: {
     //     Default: null,
     //     threeTone: 'threeTone',
@@ -186,7 +194,7 @@ const data = {
     // lightColor: light.color.getHex(),
     // gradientMap: 'threeTone',
     emissive: material.emissive.getHex(),
-    specular: material.specular.getHex(),
+    // specular: material.specular.getHex(),
 }
 
 // material.gradientMap = threeTone
@@ -226,27 +234,32 @@ materialFolder.add(material, 'side', options.side).onChange(() => updateMaterial
 /** Đoạn code trên sử dụng thư viện GUI của Three.js để tạo một folder mới có tên là 'THREE.MeshPhongMaterial'.
  * Folder này sẽ chứa các control để điều chỉnh các thuộc tính của một vật liệu MeshPhong trong Three.js.
  */
-const meshPhongMaterialFolder = gui.addFolder('THREE.MeshPhongMaterial')
+const meshPhysicalMaterialFolder  = gui.addFolder('THREE.meshPhysicalMaterialFolder ')
 
-meshPhongMaterialFolder.addColor(data, 'color').onChange(() => {
+meshPhysicalMaterialFolder.addColor(data, 'color').onChange(() => {
     material.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
-meshPhongMaterialFolder.addColor(data, 'emissive').onChange(() => {
+meshPhysicalMaterialFolder.addColor(data, 'emissive').onChange(() => {
     material.emissive.setHex(Number(data.emissive.toString().replace('#', '0x')))
 })
-meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => {
-    material.specular.setHex(Number(data.specular.toString().replace('#', '0x')))
-})
-meshPhongMaterialFolder.add(material, 'shininess', 0, 1024)
-meshPhongMaterialFolder.add(material, 'wireframe')
-meshPhongMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
-meshPhongMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
-meshPhongMaterialFolder.add(material, 'reflectivity', 0, 1)
-meshPhongMaterialFolder.open()
+// meshPhongMaterialFolder.addColor(data, 'specular').onChange(() => {
+//     material.specular.setHex(Number(data.specular.toString().replace('#', '0x')))
+// })
+// meshPhongMaterialFolder.add(material, 'shininess', 0, 1024)
+meshPhysicalMaterialFolder.add(material, 'wireframe')
+meshPhysicalMaterialFolder.add(material, 'flatShading').onChange(() => updateMaterial())
+meshPhysicalMaterialFolder.add(material, 'reflectivity', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'envMapIntensity', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'roughness', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'metalness', 0, 1)
+meshPhysicalMaterialFolder.add(material, 'clearcoat', 0, 1, 0.01)
+meshPhysicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
+// meshPhongMaterialFolder.add(material, 'combine', options.combine).onChange(() => updateMaterial())
+meshPhysicalMaterialFolder.open()
 
 function updateMaterial() {
     material.side = Number(material.side)
-    material.combine = Number(material.combine)
+    // material.combine = Number(material.combine)
     // material.gradientMap = eval(data.gradientMap as string)
     material.needsUpdate = true
 }
