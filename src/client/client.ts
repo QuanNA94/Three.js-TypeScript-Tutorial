@@ -60,8 +60,43 @@ const planeGeometry2 = new THREE.PlaneGeometry()
 
 // =================================================================================
 
-const texture1 = new THREE.TextureLoader().load('img/grid.png')
+// const texture1 = new THREE.TextureLoader().load('img/grid.png')
+// const texture2 = texture1.clone()
+
+const mipmap = (size: number, color: string) => {
+    const imageCanvas = document.createElement('canvas') as HTMLCanvasElement
+    const context = imageCanvas.getContext('2d') as CanvasRenderingContext2D
+
+    imageCanvas.width = size
+    imageCanvas.height = size
+    context.fillStyle = '#888888'
+    context.fillRect(0, 0, size, size)
+    context.fillStyle = color
+    context.fillRect(0, 0, size / 2, size / 2)
+    context.fillRect(size / 2, size / 2, size / 2, size / 2)
+    return imageCanvas
+}
+
+const blankCanvas = document.createElement('canvas') as HTMLCanvasElement
+blankCanvas.width = 128
+blankCanvas.height = 128
+
+const texture1 = new THREE.CanvasTexture(blankCanvas)
+texture1.mipmaps[0] = mipmap(128, '#ff0000')
+texture1.mipmaps[1] = mipmap(64, '#00ff00')
+texture1.mipmaps[2] = mipmap(32, '#0000ff')
+texture1.mipmaps[3] = mipmap(16, '#880000')
+texture1.mipmaps[4] = mipmap(8, '#008800')
+texture1.mipmaps[5] = mipmap(4, '#000088')
+texture1.mipmaps[6] = mipmap(2, '#008888')
+texture1.mipmaps[7] = mipmap(1, '#880088')
+texture1.repeat.set(5, 5)
+texture1.wrapS = THREE.RepeatWrapping
+texture1.wrapT = THREE.RepeatWrapping
+
 const texture2 = texture1.clone()
+texture2.minFilter = THREE.NearestFilter
+texture2.magFilter = THREE.NearestFilter
 
 /** [5] Material (Vật liệu): là một đối tượng Three.js để đại diện cho màu sắc, độ bóng và ánh sáng của một đối tượng.
  *  Vật liệu có thể được áp dụng cho hình học để tạo ra các hiệu ứng khác nhau,
@@ -70,9 +105,6 @@ const texture2 = texture1.clone()
 
 const material1: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ map: texture1 })
 const material2: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ map: texture2 })
-
-texture2.minFilter = THREE.NearestFilter
-texture2.magFilter = THREE.NearestFilter
 
 const plane1 = new THREE.Mesh(planeGeometry1, material1)
 const plane2 = new THREE.Mesh(planeGeometry2, material2)
@@ -153,5 +185,4 @@ function render() {
 
     renderer.setScissorTest(false)
 }
-animate()
 animate()
