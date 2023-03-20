@@ -59,6 +59,8 @@ controls.screenSpacePanning = true // default is now true since three r118. Used
 
 // const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
 const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8, 360, 180)
+// const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8, 1440, 720)
+
 // const torusKnotGeometry = new THREE.TorusKnotGeometry()
 
 // =================================================================================
@@ -287,10 +289,18 @@ function regeneratePlaneGeometry() {
     plane.geometry = newGeometry
 }
 
+const textureFolder = gui.addFolder('Texture')
+textureFolder.add(texture.repeat, 'x', 0.1, 1, 0.1)
+textureFolder.add(texture.repeat, 'y', 0.1, 1, 0.1)
+textureFolder.add(texture.center, 'x', 0, 1, 0.001)
+textureFolder.add(texture.center, 'y', 0, 1, 0.001)
+
+textureFolder.open()
+
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
-    controls.update()
+    // controls.update()
     // torusKnot.rotation.x += 0.01
     // torusKnot.rotation.y += 0.01
 
