@@ -5,12 +5,9 @@ import { GUI } from 'dat.gui'
 
 /** ==============================================================
  
- *  Lights all objects in the scene equally, except for self illuminating objects such as MeshBasicMaterial, MeshNormalMaterial and MeshMatcapMaterial.
- *  Doesn't cast shadows.
- *  Light is spread equally in all directions and distances. So positioning the light different than default position of [0, 0, 0] will make no difference.
- *  Materials won't show shading depending on geometry normals and there will be no specular affect, 
- *  so meshes in front of other meshes will be invisible if they have identical materials or even a single colour map texture.
- 
+ * Imagine the directional light as an OrthographicCamera, rather than a PerspectiveCamera.
+ * The light rays from a DirectionalLight are parallel in the direction.
+ *
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -19,19 +16,19 @@ import { GUI } from 'dat.gui'
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
 
+/** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
+ *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
+ */
+const light = new THREE.DirectionalLight()
+// light.position.set(0, 5, 10)
+scene.add(light)
+
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 
-const axesHelper = new THREE.AxesHelper(5)
-scene.add(axesHelper)
-
-/** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
- *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
- */
-const light = new THREE.AmbientLight()
-// light.position.set(0, 5, 10)
-scene.add(light)
+const helper = new THREE.DirectionalLightHelper(light)
+scene.add(helper)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
  * Có nhiều loại camera khác nhau như PerspectiveCamera, OrthographicCamera,
@@ -63,11 +60,11 @@ new OrbitControls(camera, renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 
-const planeGeometry = new THREE.PlaneGeometry(20, 10) //, 360, 180)
-const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
-plane.rotateX(-Math.PI / 2)
-//plane.position.y = -1.75
-scene.add(plane)
+// const planeGeometry = new THREE.PlaneGeometry(20, 10)//, 360, 180)
+// const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
+// plane.rotateX(-Math.PI / 2)
+// //plane.position.y = -1.75
+// scene.add(plane)
 
 // =================================================================================
 
@@ -112,6 +109,9 @@ torus[2].position.x = 0
 torus[3].position.x = 4
 torus[4].position.x = 8
 
+light.target.position.set(0, 10, 0)
+scene.add(light.target)
+
 scene.add(torus[0])
 scene.add(torus[1])
 scene.add(torus[2])
@@ -134,6 +134,8 @@ function onWindowResize() {
      * và độ phân giải trên màn hình khi kích thước của cửa sổ trình duyệt thay đổi.
      */
 }
+const stats = Stats()
+document.body.appendChild(stats.dom)
 
 const data = {
     color: light.color.getHex(),
@@ -147,8 +149,11 @@ lightFolder.addColor(data, 'color').onChange(() => {
 })
 lightFolder.add(light, 'intensity', 0, 1, 0.01)
 
-const ambientLightFolder = gui.addFolder('THREE.AmbientLight')
-ambientLightFolder.open()
+const directionalLightFolder = gui.addFolder('THREE.DirectionalLight')
+directionalLightFolder.add(light.position, 'x', -100, 100, 0.01)
+directionalLightFolder.add(light.position, 'y', -100, 100, 0.01)
+directionalLightFolder.add(light.position, 'z', -100, 100, 0.01)
+directionalLightFolder.open()
 
 const meshesFolder = gui.addFolder('Meshes')
 meshesFolder.add(data, 'mapsEnabled').onChange(() => {
@@ -162,19 +167,15 @@ meshesFolder.add(data, 'mapsEnabled').onChange(() => {
     })
 })
 
-const stats = Stats()
-document.body.appendChild(stats.dom)
-
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
 
+    helper.update()
+
     torus.forEach((t) => {
         t.rotation.y += 0.01
     })
-    // controls.update()
-    // torusKnot.rotation.x += 0.01
-    // torusKnot.rotation.y += 0.01
 
     render()
 
