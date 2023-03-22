@@ -4,40 +4,42 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
 /** ==============================================================
- * 
- *  Anisotropic Filtering allows us to improve the quality of the MIP maps.
- * 
+ 
+ *  Lights all objects in the scene equally, except for self illuminating objects such as MeshBasicMaterial, MeshNormalMaterial and MeshMatcapMaterial.
+ *  Doesn't cast shadows.
+ *  Light is spread equally in all directions and distances. So positioning the light different than default position of [0, 0, 0] will make no difference.
+ *  Materials won't show shading depending on geometry normals and there will be no specular affect, 
+ *  so meshes in front of other meshes will be invisible if they have identical materials or even a single colour map texture.
+ 
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
  * ánh sáng và hiệu ứng cần được vẽ trên màn hình.
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
-const scene1 = new THREE.Scene()
-const scene2 = new THREE.Scene()
+const scene = new THREE.Scene()
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 
-const axesHelper1 = new THREE.AxesHelper(5)
-scene1.add(axesHelper1)
-const axesHelper2 = new THREE.AxesHelper(5)
-scene2.add(axesHelper2)
+const axesHelper = new THREE.AxesHelper(5)
+scene.add(axesHelper)
+
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-// const light = new THREE.PointLight(0xffffff, 2)
+const light = new THREE.AmbientLight()
 // light.position.set(0, 5, 10)
-// scene.add(light)
+scene.add(light)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
  * Có nhiều loại camera khác nhau như PerspectiveCamera, OrthographicCamera,
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
  */
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-// camera.position.z = 1
-camera.position.set(0, -0.35, 0.2)
+camera.position.z = 7
+// camera.position.set(0, -0.35, 0.2)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
@@ -61,63 +63,60 @@ new OrbitControls(camera, renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 
-// const planeGeometry = new THREE.PlaneGeometry(3.6, 1.8)
-const planeGeometry1 = new THREE.PlaneGeometry() //2, 25)
-const planeGeometry2 = new THREE.PlaneGeometry() //2, 25)
+const planeGeometry = new THREE.PlaneGeometry(20, 10) //, 360, 180)
+const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
+plane.rotateX(-Math.PI / 2)
+//plane.position.y = -1.75
+scene.add(plane)
 
 // =================================================================================
 
-const texture1 = new THREE.TextureLoader().load('img/grid.png')
-const texture2 = texture1.clone()
-
-// const mipmap = (size: number, color: string): HTMLCanvasElement => {
-//     const imageCanvas = document.createElement('canvas') as HTMLCanvasElement
-//     const context = imageCanvas.getContext('2d') as CanvasRenderingContext2D
-
-//     imageCanvas.width = size
-//     imageCanvas.height = size
-//     context.fillStyle = '#888888'
-//     context.fillRect(0, 0, size, size)
-//     context.fillStyle = color
-//     context.fillRect(0, 0, size / 2, size / 2)
-//     context.fillRect(size / 2, size / 2, size / 2, size / 2)
-//     return imageCanvas
-// }
-
-// const blankCanvas = document.createElement('canvas') as HTMLCanvasElement
-// blankCanvas.width = 128
-// blankCanvas.height = 128
-
-// const texture1 = new THREE.CanvasTexture(blankCanvas)
-// texture1.mipmaps[0] = mipmap(128, '#ff0000')
-// texture1.mipmaps[1] = mipmap(64, '#00ff00')
-// texture1.mipmaps[2] = mipmap(32, '#0000ff')
-// texture1.mipmaps[3] = mipmap(16, '#880000')
-// texture1.mipmaps[4] = mipmap(8, '#008800')
-// texture1.mipmaps[5] = mipmap(4, '#000088')
-// texture1.mipmaps[6] = mipmap(2, '#008888')
-// texture1.mipmaps[7] = mipmap(1, '#880088')
-// texture1.repeat.set(5, 50)
-// texture1.wrapS = THREE.RepeatWrapping
-// texture1.wrapT = THREE.RepeatWrapping
-
-// const texture2 = texture1.clone()
-// texture2.minFilter = THREE.NearestFilter
-// texture2.magFilter = THREE.NearestFilter
+const torusGeometry = [
+    new THREE.TorusGeometry(),
+    new THREE.TorusGeometry(),
+    new THREE.TorusGeometry(),
+    new THREE.TorusGeometry(),
+    new THREE.TorusGeometry(),
+]
 
 /** [5] Material (Vật liệu): là một đối tượng Three.js để đại diện cho màu sắc, độ bóng và ánh sáng của một đối tượng.
  *  Vật liệu có thể được áp dụng cho hình học để tạo ra các hiệu ứng khác nhau,
  *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
  */
+const material = [
+    new THREE.MeshBasicMaterial(),
+    new THREE.MeshLambertMaterial(),
+    new THREE.MeshPhongMaterial(),
+    new THREE.MeshPhysicalMaterial({}),
+    new THREE.MeshToonMaterial(),
+]
 
-const material1: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ map: texture1 })
-const material2: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ map: texture2 })
+const torus = [
+    new THREE.Mesh(torusGeometry[0], material[0]),
+    new THREE.Mesh(torusGeometry[1], material[1]),
+    new THREE.Mesh(torusGeometry[2], material[2]),
+    new THREE.Mesh(torusGeometry[3], material[3]),
+    new THREE.Mesh(torusGeometry[4], material[4]),
+]
 
-const plane1 = new THREE.Mesh(planeGeometry1, material1)
-const plane2 = new THREE.Mesh(planeGeometry2, material2)
+const texture = new THREE.TextureLoader().load('img/grid.png')
+material[0].map = texture
+material[1].map = texture
+material[2].map = texture
+material[3].map = texture
+material[4].map = texture
 
-scene1.add(plane1)
-scene2.add(plane2)
+torus[0].position.x = -8
+torus[1].position.x = -4
+torus[2].position.x = 0
+torus[3].position.x = 4
+torus[4].position.x = 8
+
+scene.add(torus[0])
+scene.add(torus[1])
+scene.add(torus[2])
+scene.add(torus[3])
+scene.add(torus[4])
 
 // =================================================================================
 
@@ -136,42 +135,32 @@ function onWindowResize() {
      */
 }
 
-const options = {
-    minFilters: {
-        NearestFilter: THREE.NearestFilter,
-        NearestMipMapLinearFilter: THREE.NearestMipMapLinearFilter,
-        NearestMipMapNearestFilter: THREE.NearestMipMapNearestFilter,
-        'LinearFilter ': THREE.LinearFilter,
-        'LinearMipMapLinearFilter (Default)': THREE.LinearMipMapLinearFilter,
-        LinearMipmapNearestFilter: THREE.LinearMipmapNearestFilter,
-    },
-    magFilters: {
-        NearestFilter: THREE.NearestFilter,
-        'LinearFilter (Default)': THREE.LinearFilter,
-    },
+const data = {
+    color: light.color.getHex(),
+    mapsEnabled: true,
 }
 
 const gui = new GUI()
-const textureFolder = gui.addFolder('THREE.Texture')
-textureFolder.add(texture2, 'minFilter', options.minFilters).onChange(() => updateMinFilter())
-textureFolder.add(texture2, 'magFilter', options.magFilters).onChange(() => updateMagFilter())
-textureFolder
-    .add(texture2, 'anisotropy', 1, renderer.capabilities.getMaxAnisotropy())
-    .onChange(() => updateAnistropy())
+const lightFolder = gui.addFolder('THREE.Light')
+lightFolder.addColor(data, 'color').onChange(() => {
+    light.color.setHex(Number(data.color.toString().replace('#', '0x')))
+})
+lightFolder.add(light, 'intensity', 0, 1, 0.01)
 
-textureFolder.open()
+const ambientLightFolder = gui.addFolder('THREE.AmbientLight')
+ambientLightFolder.open()
 
-function updateAnistropy() {
-    material2.map = texture2.clone()
-}
-function updateMinFilter() {
-    texture2.minFilter = Number(texture2.minFilter)
-    texture2.needsUpdate = true
-}
-function updateMagFilter() {
-    texture2.magFilter = Number(texture2.magFilter)
-    texture2.needsUpdate = true
-}
+const meshesFolder = gui.addFolder('Meshes')
+meshesFolder.add(data, 'mapsEnabled').onChange(() => {
+    material.forEach((m) => {
+        if (data.mapsEnabled) {
+            m.map = texture
+        } else {
+            m.map = null
+        }
+        m.needsUpdate = true
+    })
+})
 
 const stats = Stats()
 document.body.appendChild(stats.dom)
@@ -179,6 +168,10 @@ document.body.appendChild(stats.dom)
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
+
+    torus.forEach((t) => {
+        t.rotation.y += 0.01
+    })
     // controls.update()
     // torusKnot.rotation.x += 0.01
     // torusKnot.rotation.y += 0.01
@@ -189,14 +182,6 @@ function animate() {
 }
 
 function render() {
-    renderer.setScissorTest(true)
-
-    renderer.setScissor(0, 0, window.innerWidth / 2 - 2, window.innerHeight)
-    renderer.render(scene1, camera)
-
-    renderer.setScissor(window.innerWidth / 2, 0, window.innerWidth / 2 - 2, window.innerHeight)
-    renderer.render(scene2, camera)
-
-    renderer.setScissorTest(false)
+    renderer.render(scene, camera)
 }
 animate()
