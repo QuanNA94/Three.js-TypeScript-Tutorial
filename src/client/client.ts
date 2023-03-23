@@ -4,10 +4,9 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
 /** ==============================================================
- 
- * Imagine the directional light as an OrthographicCamera, rather than a PerspectiveCamera.
- * The light rays from a DirectionalLight are parallel in the direction.
- *
+ * The Threejs Hemisphere light is very like a directional light 
+    but also with settings to project the light in the reverse direction. 
+    I also demonstrate the Hemisphere light helper object.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -16,10 +15,12 @@ import { GUI } from 'dat.gui'
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
 
+scene.add(new THREE.AxesHelper(5))
+
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.DirectionalLight()
+const light = new THREE.HemisphereLight()
 // light.position.set(0, 5, 10)
 scene.add(light)
 
@@ -27,7 +28,7 @@ scene.add(light)
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 
-const helper = new THREE.DirectionalLightHelper(light)
+const helper = new THREE.HemisphereLightHelper(light, 5)
 scene.add(helper)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -60,7 +61,7 @@ new OrbitControls(camera, renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 
-// const planeGeometry = new THREE.PlaneGeometry(20, 10)//, 360, 180)
+// const planeGeometry = new THREE.PlaneGeometry(100, 10)
 // const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
 // plane.rotateX(-Math.PI / 2)
 // //plane.position.y = -1.75
@@ -76,10 +77,6 @@ const torusGeometry = [
     new THREE.TorusGeometry(),
 ]
 
-/** [5] Material (Vật liệu): là một đối tượng Three.js để đại diện cho màu sắc, độ bóng và ánh sáng của một đối tượng.
- *  Vật liệu có thể được áp dụng cho hình học để tạo ra các hiệu ứng khác nhau,
- *  chẳng hạn như phản chiếu, ánh sáng, bóng tối,...
- */
 const material = [
     new THREE.MeshBasicMaterial(),
     new THREE.MeshLambertMaterial(),
@@ -109,9 +106,6 @@ torus[2].position.x = 0
 torus[3].position.x = 4
 torus[4].position.x = 8
 
-light.target.position.set(0, 10, 0)
-scene.add(light.target)
-
 scene.add(torus[0])
 scene.add(torus[1])
 scene.add(torus[2])
@@ -139,6 +133,7 @@ document.body.appendChild(stats.dom)
 
 const data = {
     color: light.color.getHex(),
+    groundColor: light.groundColor.getHex(),
     mapsEnabled: true,
 }
 
@@ -149,11 +144,15 @@ lightFolder.addColor(data, 'color').onChange(() => {
 })
 lightFolder.add(light, 'intensity', 0, 1, 0.01)
 
-const directionalLightFolder = gui.addFolder('THREE.DirectionalLight')
-directionalLightFolder.add(light.position, 'x', -100, 100, 0.01)
-directionalLightFolder.add(light.position, 'y', -100, 100, 0.01)
-directionalLightFolder.add(light.position, 'z', -100, 100, 0.01)
-directionalLightFolder.open()
+const hemisphereLightFolder = gui.addFolder('THREE.HemisphereLight')
+hemisphereLightFolder.addColor(data, 'groundColor').onChange(() => {
+    light.groundColor.setHex(Number(data.groundColor.toString().replace('#', '0x')))
+})
+
+hemisphereLightFolder.add(light.position, 'x', -100, 100, 0.01)
+hemisphereLightFolder.add(light.position, 'y', -100, 100, 0.01)
+hemisphereLightFolder.add(light.position, 'z', -100, 100, 0.01)
+hemisphereLightFolder.open()
 
 const meshesFolder = gui.addFolder('Meshes')
 meshesFolder.add(data, 'mapsEnabled').onChange(() => {
