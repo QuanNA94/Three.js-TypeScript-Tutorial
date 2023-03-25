@@ -4,9 +4,10 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
 /** ==============================================================
- * A light that gets emitted from a single point in all directions
-   distance - Maximum range of the light. Default is 0 (no limit).
-   decay - The amount the light dims along the distance of the light. Default is 1.
+ * distance - Maximum range of the light. Default is 0 (no limit).
+   angle - Maximum angle of light dispersion from its direction whose upper bound is Math.PI/2.
+   penumbra - Percent of the spotlight cone that is attenuated due to penumbra. Takes values between zero and 1. Default is zero.
+   decay - The amount the light dims along the distance of the light.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -19,7 +20,7 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.PointLight()
+const light = new THREE.SpotLight()
 // light.position.set(0, 5, 10)
 scene.add(light)
 
@@ -27,7 +28,7 @@ scene.add(light)
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 
-const helper = new THREE.PointLightHelper(light)
+const helper = new THREE.SpotLightHelper(light)
 scene.add(helper)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -63,9 +64,8 @@ new OrbitControls(camera, renderer.domElement)
 const planeGeometry = new THREE.PlaneGeometry(100, 10)
 const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
 plane.rotateX(-Math.PI / 2)
-//plane.position.y = -1.75
+plane.position.y = -1.75
 scene.add(plane)
-
 // =================================================================================
 
 const torusGeometry = [
@@ -141,16 +141,19 @@ const lightFolder = gui.addFolder('THREE.Light')
 lightFolder.addColor(data, 'color').onChange(() => {
     light.color.setHex(Number(data.color.toString().replace('#', '0x')))
 })
+
 lightFolder.add(light, 'intensity', 0, 1, 0.01)
+lightFolder.open()
 
-const pointLightFolder = gui.addFolder('THREE.PointLight')
-pointLightFolder.add(light, 'distance', 0, 100, 0.01)
-pointLightFolder.add(light, 'decay', 0, 4, 0.1)
-
-pointLightFolder.add(light.position, 'x', -50, 50, 0.01)
-pointLightFolder.add(light.position, 'y', -50, 50, 0.01)
-pointLightFolder.add(light.position, 'z', -50, 50, 0.01)
-pointLightFolder.open()
+const spotLightFolder = gui.addFolder('THREE.SpotLight')
+spotLightFolder.add(light, 'distance', 0, 100, 0.01)
+spotLightFolder.add(light, 'decay', 0, 4, 0.1)
+spotLightFolder.add(light, 'angle', 0, 1, 0.1)
+spotLightFolder.add(light, 'penumbra', 0, 1, 0.1)
+spotLightFolder.add(light.position, 'x', -50, 50, 0.01)
+spotLightFolder.add(light.position, 'y', -50, 50, 0.01)
+spotLightFolder.add(light.position, 'z', -50, 50, 0.01)
+spotLightFolder.open()
 
 const meshesFolder = gui.addFolder('Meshes')
 meshesFolder.add(data, 'mapsEnabled').onChange(() => {
