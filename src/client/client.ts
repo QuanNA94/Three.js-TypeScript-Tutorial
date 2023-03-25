@@ -4,10 +4,7 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
 
 /** ==============================================================
- * distance - Maximum range of the light. Default is 0 (no limit).
-   angle - Maximum angle of light dispersion from its direction whose upper bound is Math.PI/2.
-   penumbra - Percent of the spotlight cone that is attenuated due to penumbra. Takes values between zero and 1. Default is zero.
-   decay - The amount the light dims along the distance of the light.
+ * The Spot Light Shadow uses a PerspectiveCamera frustum to calculate the shadows.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -21,14 +18,19 @@ scene.add(new THREE.AxesHelper(5))
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
 const light = new THREE.SpotLight()
-// light.position.set(0, 5, 10)
+light.castShadow = true;
+light.shadow.mapSize.width = 512;
+light.shadow.mapSize.height = 512;
+light.shadow.camera.near = 0.5;
+light.shadow.camera.far = 100
 scene.add(light)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
 
-const helper = new THREE.SpotLightHelper(light)
+// const helper = new THREE.SpotLightHelper(light)
+const helper = new THREE.CameraHelper(light.shadow.camera);
 scene.add(helper)
 
 /** [2] Camera (Máy ảnh): là một đối tượng Three.js để đại diện cho góc nhìn của người dùng.
@@ -44,6 +46,12 @@ camera.position.z = 7
  */
 const renderer = new THREE.WebGLRenderer()
 renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+// renderer.shadowMap.type = THREE.BasicShadowMap
+//renderer.shadowMap.type = THREE.PCFShadowMap
+// renderer.shadowMap.type = THREE.VSMShadowMap
+
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
  *  Trong trường hợp này, renderer.domElement là một đối tượng HTMLCanvasElement,
  *  và nó sẽ được thêm vào thẻ body để hiển thị kết quả cuối cùng của các hoạt động đồ họa.
@@ -61,10 +69,17 @@ new OrbitControls(camera, renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 
-const planeGeometry = new THREE.PlaneGeometry(100, 10)
+// 1. khởi tạo một đối tượng PlaneGeometry với kích thước 100 đơn vị chiều dài và 20 đơn vị chiều rộng.
+const planeGeometry : THREE.PlaneGeometry = new THREE.PlaneGeometry(100, 20)
+// 2.  MeshPhongMaterial để tạo chất liệu cho mặt phẳng.
 const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial())
+// 3. xoay mặt phẳng quanh trục X một góc -90 độ, tức là xoay mặt phẳng ngang xuống.
 plane.rotateX(-Math.PI / 2)
+// 4. đặt vị trí của mặt phẳng tại độ cao -1.75 đơn vị so với trục Y. Điều này đặt mặt phẳng trên mặt đất.
 plane.position.y = -1.75
+plane.receiveShadow = true;
+
+// 5.  thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
 scene.add(plane)
 // =================================================================================
 
@@ -105,6 +120,18 @@ torus[2].position.x = 0
 torus[3].position.x = 4
 torus[4].position.x = 8
 
+torus[0].castShadow = true
+torus[1].castShadow = true
+torus[2].castShadow = true
+torus[3].castShadow = true
+torus[4].castShadow = true
+
+torus[0].receiveShadow = true
+torus[1].receiveShadow = true
+torus[2].receiveShadow = true
+torus[3].receiveShadow = true
+torus[4].receiveShadow = true
+
 scene.add(torus[0])
 scene.add(torus[1])
 scene.add(torus[2])
@@ -134,6 +161,8 @@ const data = {
     color: light.color.getHex(),
     // groundColor: light.groundColor.getHex(),
     mapsEnabled: true,
+    shadowMapSizeWidth: 512,
+    shadowMapSizeHeight: 512,
 }
 
 const gui = new GUI()
@@ -143,17 +172,28 @@ lightFolder.addColor(data, 'color').onChange(() => {
 })
 
 lightFolder.add(light, 'intensity', 0, 1, 0.01)
-lightFolder.open()
+// lightFolder.open()
 
 const spotLightFolder = gui.addFolder('THREE.SpotLight')
 spotLightFolder.add(light, 'distance', 0, 100, 0.01)
 spotLightFolder.add(light, 'decay', 0, 4, 0.1)
 spotLightFolder.add(light, 'angle', 0, 1, 0.1)
 spotLightFolder.add(light, 'penumbra', 0, 1, 0.1)
+spotLightFolder.add(light.shadow.camera, "near", 0.1, 100).onChange(() => light.shadow.camera.updateProjectionMatrix())
+spotLightFolder.add(light.shadow.camera, "far", 0.1, 100).onChange(() => light.shadow.camera.updateProjectionMatrix())
+spotLightFolder.add(data, "shadowMapSizeWidth", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize())
+spotLightFolder.add(data, "shadowMapSizeHeight", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize())
+
 spotLightFolder.add(light.position, 'x', -50, 50, 0.01)
 spotLightFolder.add(light.position, 'y', -50, 50, 0.01)
 spotLightFolder.add(light.position, 'z', -50, 50, 0.01)
 spotLightFolder.open()
+
+function updateShadowMapSize() {
+    light.shadow.mapSize.width = data.shadowMapSizeWidth
+    light.shadow.mapSize.height = data.shadowMapSizeHeight
+    ;(light.shadow.map as any) = null
+}
 
 const meshesFolder = gui.addFolder('Meshes')
 meshesFolder.add(data, 'mapsEnabled').onChange(() => {
