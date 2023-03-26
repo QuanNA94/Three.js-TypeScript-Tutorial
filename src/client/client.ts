@@ -1,9 +1,11 @@
 import * as THREE from 'three'
-import { DragControls } from 'three/examples/jsm/controls/DragControls'
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * Used to provide drag and drop interaction for your scene objects.
+ * Allows you to change the transforms of an object within the scene.
+ * You attach the controls to the object, and then add the controls to the scene, so that the interaction handles are visible.
+ * And then you can rescale, rotate and position the object within the scene.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -16,9 +18,9 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.PointLight()
-light.position.set(10, 10, 10)
-scene.add(light)
+// const light = new THREE.PointLight()
+// light.position.set(10, 10, 10)
+// scene.add(light)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
@@ -35,7 +37,7 @@ scene.add(light)
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-camera.position.z = 3
+camera.position.z = 2
 // camera.position.set(0, -0.35, 0.2)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
@@ -58,56 +60,39 @@ document.body.appendChild(renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 const geometry = new THREE.BoxGeometry()
-// const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({
-//     color: 0xff0000,
-//     transparent: true,
-// })
+const material = new THREE.MeshNormalMaterial()
 
-// const cube: THREE.Mesh = new THREE.Mesh(geometry, material)
-// scene.add(cube)
+const cube = new THREE.Mesh(geometry, material)
+// thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
+scene.add(cube)
 
-const material = [
-    new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true }),
-    new THREE.MeshPhongMaterial({ color: 0x00ff00, transparent: true }),
-    new THREE.MeshPhongMaterial({ color: 0x0000ff, transparent: true }),
-]
-
-const cubes = [
-    new THREE.Mesh(geometry, material[0]),
-    new THREE.Mesh(geometry, material[1]),
-    new THREE.Mesh(geometry, material[2]),
-
-    // new THREE.Mesh(geometry, material),
-    // new THREE.Mesh(geometry, material),
-    // new THREE.Mesh(geometry, material),
-]
-cubes[0].position.x = -2
-cubes[1].position.x = 0
-cubes[2].position.x = 2
-cubes.forEach((c) => scene.add(c))
-
+// const cube2 = new THREE.Mesh(geometry, material)
+// cube2.position.x = 1
+// scene.add(cube2)
 /** `new OrbitControls(camera, renderer.domElement)`
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
 
-//  const somecubes = [cubes[0], cubes[2]]
-// const controls = new DragControls(somecubes, camera, renderer.domElement)
-const controls = new DragControls(cubes, camera, renderer.domElement)
-// const controls = new DragControls([cube], camera, renderer.domElement)
+const controls = new TransformControls(camera, renderer.domElement)
+controls.attach(cube)
+// controls.attach(cube2)
 
-// ============================================================================
-controls.addEventListener('dragstart', function (event) {
-    event.object.material.opacity = 0.33
-})
-controls.addEventListener('dragend', function (event) {
-    event.object.material.opacity = 1
-})
-// ============================================================================
+scene.add(controls)
 
-const cube = new THREE.Mesh(geometry, material)
-// thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
-scene.add(cube)
+window.addEventListener('keydown', function (event) {
+    switch (event.code) {
+        case 'KeyG':
+            controls.setMode('translate')
+            break
+        case 'KeyR':
+            controls.setMode('rotate')
+            break
+        case 'KeyS':
+            controls.setMode('scale')
+            break
+    }
+})
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -137,13 +122,6 @@ document.body.appendChild(stats.dom)
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
-
-    cubes[0].rotation.x += 0.01
-    cubes[0].rotation.y += 0.011
-    cubes[1].rotation.x += 0.012
-    cubes[1].rotation.y += 0.013
-    cubes[2].rotation.x += 0.014
-    cubes[2].rotation.y += 0.015
 
     // helper.update()
 
