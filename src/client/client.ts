@@ -1,10 +1,11 @@
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * The Directional Light Shadow uses an OrthographicCamera to calculate the shadows, rather than a PerspectiveCamera. 
- * This is because the light rays from the DirectionalLight are parallel.
+ * TrackballControls is similar to OrbitControls. 
+ * However, it does not maintain a constant camera up vector.
+ *  That means that the camera can orbit past it's polar extremes. It won't flip to stay the right side up.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -53,56 +54,20 @@ document.body.appendChild(renderer.domElement)
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
-const controls = new OrbitControls(camera, renderer.domElement)
-// camera.lookAt(0.5, 0.5, 0.5)
-// controls.target.set(0.5, 0.5, 0.5)
-// controls.update()
-
+const controls = new TrackballControls(camera, renderer.domElement)
 // controls.addEventListener('change', () => console.log("Controls Change"))
 // controls.addEventListener('start', () => console.log("Controls Start Event"))
 // controls.addEventListener('end', () => console.log("Controls End Event"))
-
-/**
- *  nó chỉ work khi controls.update()
- */
-// controls.autoRotate = true
-// controls.autoRotateSpeed = 10
-// controls.enableDamping = true  // vẫn còn rotate khi xoay slow down
-// controls.dampingFactor = .01 // change speed factor
-// controls.enableKeys = true //older versions
-// controls.listenToKeyEvents(document.body) // using keyboard arrow
-// controls.keys = {
-//     LEFT: "KeyA", //left arrow
-//     UP: "KeyW", // up arrow
-//     RIGHT: "KeyD", // right arrow
-//     BOTTOM: "KeyS" // down arrow
-// }
-// controls.mouseButtons = {
-//     LEFT: THREE.MOUSE.ROTATE,
-//     MIDDLE: THREE.MOUSE.DOLLY,
-//     RIGHT: THREE.MOUSE.PAN
-// }
-
-// touch event: using for the iphone, ipad
-// controls.touches = {
-//     ONE: THREE.TOUCH.ROTATE,
-//     TWO: THREE.TOUCH.DOLLY_PAN
-// }
-// controls.screenSpacePanning = true
-/**
- * Rotate left_&&_right_&&_reverse
- */
-// controls.minAzimuthAngle = 0 // -Math.PI / 2 = 180 degree
-// controls.maxAzimuthAngle = Math.PI / 2
-/**
- *  Rotate up_&&_down
- */
-// controls.minPolarAngle = 0
-// controls.maxPolarAngle = Math.PI
-
-/**
- *  Limit zoom in_out 
- */
+// controls.enabled = false
+controls.rotateSpeed = 10.0
+// controls.zoomSpeed = 1.2
+// controls.panSpeed = 0.8
+// controls.keys = ['KeyA', 'KeyS', 'KeyD']
+// controls.noPan = true //default false
+// controls.noRotate = true //default false
+// controls.noZoom = true //default false
+// controls.staticMoving = true //default false
+// controls.dynamicDampingFactor = 0.1
 // controls.maxDistance = 4
 // controls.minDistance = 2
 
@@ -155,6 +120,8 @@ function animate() {
     // torus.forEach((t) => {
     //     t.rotation.y += 0.01
     // })
+
+    // trackball controls needs to be updated in the animation loop before it will work
     controls.update()
 
     render()
