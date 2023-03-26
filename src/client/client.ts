@@ -1,11 +1,15 @@
 import * as THREE from 'three'
-import { TrackballControls } from 'three/examples/jsm/controls/TrackballControls'
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * TrackballControls is similar to OrbitControls. 
- * However, it does not maintain a constant camera up vector.
- *  That means that the camera can orbit past it's polar extremes. It won't flip to stay the right side up.
+ * The PointerLockControls implements the inbuilt browsers Pointer Lock API.
+ *  It provides input methods based on the movement of the mouse over time (i.e., deltas), 
+ * not just the absolute position of the mouse cursor in the viewport.
+ *  It gives you access to raw mouse movement,
+ *  locks the target of mouse events to a single element,
+ *  eliminates limits on how far mouse movement can go in a single direction,
+ *  and removes the cursor from view. It is ideal for first person 3D games, for example.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -13,7 +17,6 @@ import Stats from 'three/examples/jsm/libs/stats.module'
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
-
 scene.add(new THREE.AxesHelper(5))
 
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
@@ -35,6 +38,8 @@ scene.add(new THREE.AxesHelper(5))
  * CubeCamera,... cho phép bạn tạo ra các hiệu ứng khác nhau và điều chỉnh khoảng cách đến các đối tượng trên màn hình.
  */
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+// camera.position.x = 2
+camera.position.y = 1
 camera.position.z = 2
 // camera.position.set(0, -0.35, 0.2)
 
@@ -50,41 +55,120 @@ renderer.setSize(window.innerWidth, window.innerHeight)
  */
 document.body.appendChild(renderer.domElement)
 
+const menuPanel = document.getElementById('menuPanel') as HTMLDivElement
+const startButton = document.getElementById('startButton') as HTMLInputElement
+startButton.addEventListener(
+    'click',
+    function () {
+        controls.lock()
+    },
+    false
+)
+
 /** `new OrbitControls(camera, renderer.domElement)`
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
-const controls = new TrackballControls(camera, renderer.domElement)
+const controls = new PointerLockControls(camera, renderer.domElement)
 // controls.addEventListener('change', () => console.log("Controls Change"))
-// controls.addEventListener('start', () => console.log("Controls Start Event"))
-// controls.addEventListener('end', () => console.log("Controls End Event"))
-// controls.enabled = false
-controls.rotateSpeed = 10.0
-// controls.zoomSpeed = 1.2
-// controls.panSpeed = 0.8
-// controls.keys = ['KeyA', 'KeyS', 'KeyD']
-// controls.noPan = true //default false
-// controls.noRotate = true //default false
-// controls.noZoom = true //default false
-// controls.staticMoving = true //default false
-// controls.dynamicDampingFactor = 0.1
-// controls.maxDistance = 4
-// controls.minDistance = 2
+controls.addEventListener('lock', () => menuPanel.style.display = 'none')
+controls.addEventListener('unlock', () => menuPanel.style.display = 'block')
 
 /** [4] Geometry (Hình học): là một đối tượng Three.js để đại diện cho hình dạng và kích thước của một đối tượng.
  *  Geometry có thể được sử dụng để tạo ra các hình dạng phức tạp
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 
-const geometry: THREE.BoxGeometry = new THREE.BoxGeometry()
+const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(100, 100, 50, 50)
 const material = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     wireframe: true,
 })
 
-const cube = new THREE.Mesh(geometry, material)
-// thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
-scene.add(cube)
+const plane = new THREE.Mesh(planeGeometry, material)
+plane.rotateX(-Math.PI / 2)
+scene.add(plane)
+
+// const cube = new THREE.Mesh(geometry, material)
+// // thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
+// scene.add(cube)
+
+/** Đoạn code trên sử dụng thư viện Three.js để tạo ra 100 hình hộp (cubes)
+ * có kích thước và màu sắc ngẫu nhiên, và thêm chúng vào một scene.
+ */
+
+const cubes: THREE.Mesh[] = []
+for (let i = 0; i < 100; i++) {
+    // Để tạo ra mỗi hình hộp, đoạn code sử dụng class THREE.BoxGeometry để tạo ra geometry và
+    const geo = new THREE.BoxGeometry(Math.random() * 4, Math.random() * 16, Math.random() * 4)
+    // class THREE.MeshBasicMaterial để tạo ra vật liệu cho mỗi hình hộp.
+    // Vật liệu được tạo ra với thuộc tính wireframe: true, nghĩa là chỉ hiển thị khung xương của hình hộp thay vì mặt phẳng.
+    const mat = new THREE.MeshBasicMaterial({ wireframe: true })
+
+    /**
+     * Màu sắc của từng hình hộp được xác định dựa trên phần dư của số thứ tự của hình hộp khi chia cho 3,
+     * bằng cách sử dụng câu lệnh switch-case để gán giá trị màu cho vật liệu.
+     */
+    switch (i % 3) {
+        case 0:
+            // Nếu số thứ tự là 0, hình hộp có màu đỏ (0xff0000)
+            mat.color = new THREE.Color(0xff0000)
+            break
+        case 1:
+            // nếu là 1 thì màu vàng (0xffff00)
+            mat.color = new THREE.Color(0xffff00)
+            break
+        case 2:
+            // nếu là 2 thì màu xanh dương (0x0000ff).
+            mat.color = new THREE.Color(0x0000ff)
+            break
+    }
+    /**
+     * Sau khi tạo ra các hình hộp,
+     * chúng được đặt vào một mảng (cubes)
+     */
+    const cube = new THREE.Mesh(geo, mat)
+    cubes.push(cube)
+}
+/** và sau đó vòng lặp forEach
+ * được sử dụng để xác định vị trí và đưa từng hình hộp vào scene.
+ */
+cubes.forEach((c) => {
+    /**
+     * Mỗi hình hộp được đặt vào một vị trí ngẫu nhiên trên trục x và trục z,
+     * và được nâng lên một độ cao sao cho mặt phẳng đáy của hình hộp đặt trên mặt phẳng của scene.
+     */
+
+    c.position.x = Math.random() * 100 - 50
+    c.position.z = Math.random() * 100 - 50
+
+    // Điều này được thực hiện bằng cách tính toán chiều cao của hình hộp thông qua phương thức computeBoundingBox() của geometry,
+    c.geometry.computeBoundingBox()
+    // sau đó tính toán vị trí theo công thức ((max.y - min.y) / 2).
+    // c.position.y =
+    //     ((c.geometry.boundingBox as THREE.Box3).max.y -
+    //         (c.geometry.boundingBox as THREE.Box3).min.y) /
+    //     2
+    scene.add(c)
+})
+
+const onKeyDown = function (event: KeyboardEvent) {
+    switch (event.code) {
+        case "KeyW":
+            controls.moveForward(.25)
+            break
+        case "KeyA":
+            controls.moveRight(-.25)
+            break
+        case "KeyS":
+            controls.moveForward(-.25)
+            break
+        case "KeyD":
+            controls.moveRight(.25)
+            break
+    }
+}
+document.addEventListener('keydown', onKeyDown, false)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -122,7 +206,7 @@ function animate() {
     // })
 
     // trackball controls needs to be updated in the animation loop before it will work
-    controls.update()
+    // controls.update()
 
     render()
 
