@@ -1,12 +1,18 @@
 import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+// import { DragControls } from 'three/examples/jsm/controls/DragControls'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * Allows you to change the transforms of an object within the scene.
- * You attach the controls to the object, and then add the controls to the scene, so that the interaction handles are visible.
- * And then you can rescale, rotate and position the object within the scene.
+ * An example of using a combination of
+    * OrbitControls with DragControls, or
+    * OrbitControls with TransformControls
   ============================================================== */
+
+/*===========================================================
+        OrbitControls with DragControls Script
+=========================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
  * ánh sáng và hiệu ứng cần được vẽ trên màn hình.
@@ -60,7 +66,7 @@ document.body.appendChild(renderer.domElement)
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
 const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshNormalMaterial()
+const material = new THREE.MeshNormalMaterial({ transparent: true })
 
 const cube = new THREE.Mesh(geometry, material)
 // thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
@@ -69,30 +75,56 @@ scene.add(cube)
 // const cube2 = new THREE.Mesh(geometry, material)
 // cube2.position.x = 1
 // scene.add(cube2)
+
 /** `new OrbitControls(camera, renderer.domElement)`
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
+const orbitControls = new OrbitControls(camera, renderer.domElement)
+// const dragControls = new DragControls([cube], camera, renderer.domElement)
 
-const controls = new TransformControls(camera, renderer.domElement)
-controls.attach(cube)
-// controls.attach(cube2)
+// dragControls.addEventListener('dragstart', function (event) {
+//     orbitControls.enabled = false
+//     event.object.material.opacity = 0.33
+// })
+// dragControls.addEventListener('dragend', function (event) {
+//     orbitControls.enabled = true
+//     event.object.material.opacity = 1
+// })
 
-scene.add(controls)
+const transformControls = new TransformControls(camera, renderer.domElement)
+transformControls.attach(cube)
+transformControls.setMode('rotate')
+scene.add(transformControls)
+
+transformControls.addEventListener('dragging-changed', function (event) {
+    orbitControls.enabled = !event.value
+    //dragControls.enabled = !event.value
+})
 
 window.addEventListener('keydown', function (event) {
-    switch (event.code) {
-        case 'KeyG':
-            controls.setMode('translate')
+    switch (event.key) {
+        case 'g':
+            transformControls.setMode('translate')
             break
-        case 'KeyR':
-            controls.setMode('rotate')
+        case 'r':
+            transformControls.setMode('rotate')
             break
-        case 'KeyS':
-            controls.setMode('scale')
+        case 's':
+            transformControls.setMode('scale')
             break
     }
 })
+
+const backGroundTexture = new THREE.CubeTextureLoader().load([
+    'img/px_eso0932a.jpg',
+    'img/nx_eso0932a.jpg',
+    'img/py_eso0932a.jpg',
+    'img/ny_eso0932a.jpg',
+    'img/pz_eso0932a.jpg',
+    'img/nz_eso0932a.jpg',
+])
+scene.background = backGroundTexture
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
