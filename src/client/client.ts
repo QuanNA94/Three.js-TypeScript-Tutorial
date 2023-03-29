@@ -1,18 +1,21 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-// import { DragControls } from 'three/examples/jsm/controls/DragControls'
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import { ObjectLoader } from 'three'
 
 /** ==============================================================
- * An example of using a combination of
-    * OrbitControls with DragControls, or
-    * OrbitControls with TransformControls
+ * Used for loading 3d models saved in the Wavefront OBJ format.
+ * There are many DCC (Digital Content Creation) tools that can create models in OBJ format.
+ * In Threejs, when importing an OBJ, the default material will be a white MeshPhongMaterial
+ * so you will need at least one light in your scene.
+ * 
+ * The 3D models used in this lesson can be easily created using Blender. 
+ * If you don't want to use blender to create the models, 
+ * then you can download them from the zip file named models1.zip. 
+ * Create a new folder named models inside the ./dist/client/ folder. 
+ * Extract the models1.zip contents into the new folder.
   ============================================================== */
-
-/*===========================================================
-        OrbitControls with DragControls Script
-=========================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
  * ánh sáng và hiệu ứng cần được vẽ trên màn hình.
@@ -24,9 +27,9 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-// const light = new THREE.PointLight()
-// light.position.set(10, 10, 10)
-// scene.add(light)
+const light = new THREE.PointLight()
+light.position.set(2.5, 7.5, 15)
+scene.add(light)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
@@ -43,7 +46,7 @@ scene.add(new THREE.AxesHelper(5))
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-camera.position.z = 2
+camera.position.z = 3
 // camera.position.set(0, -0.35, 0.2)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
@@ -65,66 +68,54 @@ document.body.appendChild(renderer.domElement)
  *  Geometry có thể được sử dụng để tạo ra các hình dạng phức tạp
  * từ các hình dạng cơ bản như hình cầu, hình trụ, hình chữ nhật,...
  */
-const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshNormalMaterial({ transparent: true })
-
-const cube = new THREE.Mesh(geometry, material)
-// thêm mặt phẳng vào đối tượng Scene để nó được hiển thị lên màn hình.
-scene.add(cube)
-
-// const cube2 = new THREE.Mesh(geometry, material)
-// cube2.position.x = 1
-// scene.add(cube2)
 
 /** `new OrbitControls(camera, renderer.domElement)`
  * sử dụng trong Three.js để tạo ra một đối tượng điều khiển camera bằng chuột.
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
-const orbitControls = new OrbitControls(camera, renderer.domElement)
-// const dragControls = new DragControls([cube], camera, renderer.domElement)
 
-// dragControls.addEventListener('dragstart', function (event) {
-//     orbitControls.enabled = false
-//     event.object.material.opacity = 0.33
-// })
-// dragControls.addEventListener('dragend', function (event) {
-//     orbitControls.enabled = true
-//     event.object.material.opacity = 1
-// })
+const controls = new OrbitControls(camera, renderer.domElement)
+// cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
+controls.enableDamping = true
 
-const transformControls = new TransformControls(camera, renderer.domElement)
-transformControls.attach(cube)
-transformControls.setMode('rotate')
-scene.add(transformControls)
+// const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+const material = new THREE.MeshNormalMaterial()
 
-transformControls.addEventListener('dragging-changed', function (event) {
-    orbitControls.enabled = !event.value
-    //dragControls.enabled = !event.value
-})
+const objLoader = new OBJLoader()
+objLoader.load(
+    'models/monkey.obj',
+    (object) => {
+        console.log('object', object)
 
-window.addEventListener('keydown', function (event) {
-    switch (event.key) {
-        case 'g':
-            transformControls.setMode('translate')
-            break
-        case 'r':
-            transformControls.setMode('rotate')
-            break
-        case 's':
-            transformControls.setMode('scale')
-            break
+        // ;(object.children[0] as THREE.Mesh).material = material
+        object.traverse(function (child) {
+            if ((child as THREE.Mesh).isMesh) {
+                ;(child as THREE.Mesh).material = material
+            }
+        })
+        scene.add(object)
+    },
+    (xhr) => {
+        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+    },
+    (error) => {
+        console.log(error)
     }
-})
+)
 
-const backGroundTexture = new THREE.CubeTextureLoader().load([
-    'img/px_eso0932a.jpg',
-    'img/nx_eso0932a.jpg',
-    'img/py_eso0932a.jpg',
-    'img/ny_eso0932a.jpg',
-    'img/pz_eso0932a.jpg',
-    'img/nz_eso0932a.jpg',
-])
-scene.background = backGroundTexture
+objLoader.load(
+    'models/cube.obj',
+    (object) => {
+        object.position.x = -3
+        scene.add(object)
+    },
+    (xhr) => {
+        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+    },
+    (error) => {
+        console.log(error)
+    }
+)
 
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
@@ -154,6 +145,8 @@ document.body.appendChild(stats.dom)
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 function animate() {
     requestAnimationFrame(animate)
+
+    controls.update()
 
     // helper.update()
 
