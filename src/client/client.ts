@@ -1,20 +1,14 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * MTL is the material information used by an OBJ file. 
- * You can set the colours, specular, emissive, alpha, smoothness, image maps, and there coordinates.
- * Since it is a MeshPhongMaterial by default, we can only set properties affecting the meshPhongMaterial.
-  
- * If you create your OBJ and MTL using Blender, then you can change
-    Base Color
-    Specular
-    Emission
-    Alpha
-    Smooth/Flat Shaded
+ * A loader for loading glTF models into the Threejs scene.
+ * glTF is a specification for the efficient transmission and loading of 3D scenes and models.
+ * glTF minimizes both the size of 3D assets, and the runtime processing needed to unpack and use those assets.
+ * A glTF file may contain one or more scenes, meshes, materials, textures, skins, skeletons, morph targets, animations, lights and cameras.
+ * Assets can be provided in either JSON (.gltf) or binary (.glb) format.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -27,9 +21,9 @@ scene.add(new THREE.AxesHelper(5))
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-const light = new THREE.PointLight()
-light.position.set(2.5, 7.5, 15)
-scene.add(light)
+// const light = new THREE.SpotLight()
+// light.position.set(5, 5, 5)
+// scene.add(light)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
@@ -46,13 +40,16 @@ scene.add(light)
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-camera.position.z = 3
+camera.position.z = 2
 // camera.position.set(0, -0.35, 0.2)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
 const renderer = new THREE.WebGLRenderer()
+renderer.physicallyCorrectLights = true
+renderer.shadowMap.enabled = true
+// renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -79,32 +76,30 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
 // const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
-const material = new THREE.MeshNormalMaterial()
+// const material = new THREE.MeshNormalMaterial()
 
-const mtlLoader = new MTLLoader()
-mtlLoader.load(
+const loader = new GLTFLoader()
+loader.load(
     // 1. the file to download
-    'models/monkey.mtl',
+    'models/monkey.glb',
     // 2. what to do on success
-    (materials) => {
-        // doing materials preload when it has fully load
-        materials.preload()
-        // console.log(materials)
-        const objLoader = new OBJLoader()
-        objLoader.setMaterials(materials)
-        objLoader.load(
-            'models/monkey.obj',
-            (object) => {
-                console.log(object)
-                scene.add(object)
-            },
-            (xhr) => {
-                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-            },
-            (error) => {
-                console.log('An error happened')
+    function (gltf) {
+        gltf.scene.traverse(function (child) {
+            if ((child as THREE.Mesh).isMesh) {
+                const m = (child as THREE.Mesh)
+                m.receiveShadow = true
+                m.castShadow = true
             }
-        )
+            if (((child as THREE.Light)).isLight) {
+                const l = (child as THREE.Light)
+                l.castShadow = true
+                l.shadow.bias = -.001
+                l.shadow.mapSize.width = 2048
+                l.shadow.mapSize.height = 2048
+            }
+        })
+        console.log(gltf.scene)
+        scene.add(gltf.scene)
     },
     // progress callback
     (xhr) => {
@@ -112,43 +107,7 @@ mtlLoader.load(
     },
     // error callback
     (error) => {
-        console.log('An error happened')
-    }
-)
-
-mtlLoader.load(
-    // 1. the file to download
-    'models/monkeyTextured.mtl',
-    // 2. what to do on success
-    (materials) => {
-        // doing materials preload when it has fully load
-        materials.preload()
-
-        // console.log(materials)
-        const objLoader = new OBJLoader()
-        objLoader.setMaterials(materials)
-        objLoader.load(
-            'models/monkey.obj',
-            (object) => {
-                console.log(object)
-                object.position.x = 3
-                scene.add(object)
-            },
-            (xhr) => {
-                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-            },
-            (error) => {
-                console.log('An error happened')
-            }
-        )
-    },
-    // progress callback
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-    },
-    // error callback
-    (error) => {
-        console.log('An error happened')
+        console.log(error)
     }
 )
 
