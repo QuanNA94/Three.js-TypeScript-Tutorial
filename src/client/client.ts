@@ -1,20 +1,20 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
-import { ObjectLoader } from 'three'
 
 /** ==============================================================
- * Used for loading 3d models saved in the Wavefront OBJ format.
- * There are many DCC (Digital Content Creation) tools that can create models in OBJ format.
- * In Threejs, when importing an OBJ, the default material will be a white MeshPhongMaterial
- * so you will need at least one light in your scene.
- * 
- * The 3D models used in this lesson can be easily created using Blender. 
- * If you don't want to use blender to create the models, 
- * then you can download them from the zip file named models1.zip. 
- * Create a new folder named models inside the ./dist/client/ folder. 
- * Extract the models1.zip contents into the new folder.
+ * MTL is the material information used by an OBJ file. 
+ * You can set the colours, specular, emissive, alpha, smoothness, image maps, and there coordinates.
+ * Since it is a MeshPhongMaterial by default, we can only set properties affecting the meshPhongMaterial.
+  
+ * If you create your OBJ and MTL using Blender, then you can change
+    Base Color
+    Specular
+    Emission
+    Alpha
+    Smooth/Flat Shaded
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -81,39 +81,74 @@ controls.enableDamping = true
 // const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
 const material = new THREE.MeshNormalMaterial()
 
-const objLoader = new OBJLoader()
-objLoader.load(
-    'models/monkey.obj',
-    (object) => {
-        console.log('object', object)
-
-        // ;(object.children[0] as THREE.Mesh).material = material
-        object.traverse(function (child) {
-            if ((child as THREE.Mesh).isMesh) {
-                ;(child as THREE.Mesh).material = material
+const mtlLoader = new MTLLoader()
+mtlLoader.load(
+    // 1. the file to download
+    'models/monkey.mtl',
+    // 2. what to do on success
+    (materials) => {
+        // doing materials preload when it has fully load
+        materials.preload()
+        // console.log(materials)
+        const objLoader = new OBJLoader()
+        objLoader.setMaterials(materials)
+        objLoader.load(
+            'models/monkey.obj',
+            (object) => {
+                console.log(object)
+                scene.add(object)
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log('An error happened')
             }
-        })
-        scene.add(object)
+        )
     },
+    // progress callback
     (xhr) => {
         console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
     },
+    // error callback
     (error) => {
-        console.log(error)
+        console.log('An error happened')
     }
 )
 
-objLoader.load(
-    'models/cube.obj',
-    (object) => {
-        object.position.x = -3
-        scene.add(object)
+mtlLoader.load(
+    // 1. the file to download
+    'models/monkeyTextured.mtl',
+    // 2. what to do on success
+    (materials) => {
+        // doing materials preload when it has fully load
+        materials.preload()
+
+        // console.log(materials)
+        const objLoader = new OBJLoader()
+        objLoader.setMaterials(materials)
+        objLoader.load(
+            'models/monkey.obj',
+            (object) => {
+                console.log(object)
+                object.position.x = 3
+                scene.add(object)
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log('An error happened')
+            }
+        )
     },
+    // progress callback
     (xhr) => {
         console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
     },
+    // error callback
     (error) => {
-        console.log(error)
+        console.log('An error happened')
     }
 )
 
