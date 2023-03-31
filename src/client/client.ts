@@ -1,21 +1,13 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * The DRACO loader is used to load geometry compressed with the Draco library.
- * Draco is an open source library for compressing and decompressing 3D meshes and point clouds.
- * glTF files can also be compressed using the DRACO library, and they can also be loaded using the glTF loader. 
- * We can configure the glTF loader to use the DRACOLoader to decompress the file in such cases.
- * Caveat, compressing a file doesn't necessarily mean that the file will be presented in the scene faster. 
- * While compressed geometry can result in a significantly smaller file size, 
- * the client browsers CPU will use more time decoding the file, 
- * and also need to download additional libraries into a web worker to run the decompression process.
- * See below example showing that the compressed file appears later in the scene than the uncompressed version.
- * All files and applications are different, you will need to test using compression 
- * or not if you want to know if compression will benefit your application or not.
+ * In this video I demonstrate adding a texture to the glTF model 
+ * and modifying its UV coordinates. By default, 
+ * the texture is embedded into the model when you export it from blender. 
+ * This makes it easier to create and use textured models versus when doing it using OBJ and MTL.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -23,7 +15,6 @@ import Stats from 'three/examples/jsm/libs/stats.module'
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
-scene.add(new THREE.AxesHelper(5))
 
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
@@ -35,6 +26,8 @@ scene.add(new THREE.AxesHelper(5))
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
+scene.add(new THREE.AxesHelper(5))
+
 // const helper = new THREE.SpotLightHelper(light)
 //const helper = new THREE.DirectionalLightHelper(light);
 // const helper = new THREE.CameraHelper(light.shadow.camera)
@@ -57,7 +50,7 @@ const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
 renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
 renderer.shadowMap.enabled = true
-// renderer.outputEncoding = THREE.sRGBEncoding
+renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -84,14 +77,12 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
 
 // Note that since Three release 148, you will find the Draco libraries in the `.\node_modules\three\examples\jsm\libs\draco\` folder.
-const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath('/js/libs/draco/')
+
 
 const loader = new GLTFLoader()
-loader.setDRACOLoader(dracoLoader)
 loader.load(
     // 1. the file to download
-    'models/monkey_compressed.glb',
+    'models/monkey_textured.glb',
     // 2. what to do on success
     function (gltf) {
         gltf.scene.traverse(function (child) {
