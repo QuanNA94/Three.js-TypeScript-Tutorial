@@ -1,14 +1,21 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * A loader for loading glTF models into the Threejs scene.
- * glTF is a specification for the efficient transmission and loading of 3D scenes and models.
- * glTF minimizes both the size of 3D assets, and the runtime processing needed to unpack and use those assets.
- * A glTF file may contain one or more scenes, meshes, materials, textures, skins, skeletons, morph targets, animations, lights and cameras.
- * Assets can be provided in either JSON (.gltf) or binary (.glb) format.
+ * The DRACO loader is used to load geometry compressed with the Draco library.
+ * Draco is an open source library for compressing and decompressing 3D meshes and point clouds.
+ * glTF files can also be compressed using the DRACO library, and they can also be loaded using the glTF loader. 
+ * We can configure the glTF loader to use the DRACOLoader to decompress the file in such cases.
+ * Caveat, compressing a file doesn't necessarily mean that the file will be presented in the scene faster. 
+ * While compressed geometry can result in a significantly smaller file size, 
+ * the client browsers CPU will use more time decoding the file, 
+ * and also need to download additional libraries into a web worker to run the decompression process.
+ * See below example showing that the compressed file appears later in the scene than the uncompressed version.
+ * All files and applications are different, you will need to test using compression 
+ * or not if you want to know if compression will benefit your application or not.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -46,8 +53,9 @@ camera.position.z = 2
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
-const renderer = new THREE.WebGLRenderer()
-renderer.physicallyCorrectLights = true
+const renderer: any = new THREE.WebGLRenderer()
+//renderer.physicallyCorrectLights = true //deprecated
+renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
 renderer.shadowMap.enabled = true
 // renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
@@ -75,25 +83,27 @@ const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
 controls.enableDamping = true
 
-// const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
-// const material = new THREE.MeshNormalMaterial()
+// Note that since Three release 148, you will find the Draco libraries in the `.\node_modules\three\examples\jsm\libs\draco\` folder.
+const dracoLoader = new DRACOLoader()
+dracoLoader.setDecoderPath('/js/libs/draco/')
 
 const loader = new GLTFLoader()
+loader.setDRACOLoader(dracoLoader)
 loader.load(
     // 1. the file to download
-    'models/monkey.glb',
+    'models/monkey_compressed.glb',
     // 2. what to do on success
     function (gltf) {
         gltf.scene.traverse(function (child) {
             if ((child as THREE.Mesh).isMesh) {
-                const m = (child as THREE.Mesh)
+                const m = child as THREE.Mesh
                 m.receiveShadow = true
                 m.castShadow = true
             }
-            if (((child as THREE.Light)).isLight) {
-                const l = (child as THREE.Light)
+            if ((child as THREE.Light).isLight) {
+                const l = child as THREE.Light
                 l.castShadow = true
-                l.shadow.bias = -.001
+                l.shadow.bias = -0.003
                 l.shadow.mapSize.width = 2048
                 l.shadow.mapSize.height = 2048
             }
