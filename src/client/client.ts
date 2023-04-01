@@ -1,13 +1,23 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * In this video I demonstrate adding a texture to the glTF model 
- * and modifying its UV coordinates. By default, 
- * the texture is embedded into the model when you export it from blender. 
- * This makes it easier to create and use textured models versus when doing it using OBJ and MTL.
+ * The FBX format is used to provide interoperability 
+ * between digital content creation applications and game engines 
+ * such as Blender, Maya, Autodesk, Unity, Unreal and many others. 
+ * It supports many features such as 3D models, scene hierarchy, materials, lighting, animations, bones and more.
+ * 
+ * For this exercise, you should download the character model named "Kachujin G Rosales"
+ *  from Mixamo and save it into your ./dist/client/models folder. 
+ * Save it using the FBX Binary(.fbx) and T-Pose options.
+ * 
+ * ----------------NOTE----------------
+ * There seems to be a problem with FBXLoader in Three r151. 
+ * You may need to downgrade to Three r150.1 to do the FBXLoader lessons.
+
+    npm install three@0.150.1
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -15,18 +25,21 @@ import Stats from 'three/examples/jsm/libs/stats.module'
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
+scene.add(new THREE.AxesHelper(5))
 
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
  */
-// const light = new THREE.SpotLight()
-// light.position.set(5, 5, 5)
-// scene.add(light)
+const light = new THREE.PointLight()
+light.position.set(0.8, 1.4, 1.0)
+scene.add(light)
+
+const ambientLight = new THREE.AmbientLight()
+scene.add(ambientLight)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
-scene.add(new THREE.AxesHelper(5))
 
 // const helper = new THREE.SpotLightHelper(light)
 //const helper = new THREE.DirectionalLightHelper(light);
@@ -40,17 +53,18 @@ scene.add(new THREE.AxesHelper(5))
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-camera.position.z = 2
-// camera.position.set(0, -0.35, 0.2)
+// camera.position.z = 2
+
+camera.position.set(0.8, 1.4, 1.0)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
 const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
-renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-renderer.shadowMap.enabled = true
-renderer.outputEncoding = THREE.sRGBEncoding
+// renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
+// renderer.shadowMap.enabled = true
+// renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -75,32 +89,30 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
 controls.enableDamping = true
+controls.target.set(0, 1, 0)
+
+//const material = new THREE.MeshNormalMaterial()
 
 // Note that since Three release 148, you will find the Draco libraries in the `.\node_modules\three\examples\jsm\libs\draco\` folder.
 
-
-const loader = new GLTFLoader()
-loader.load(
+const fbxLoader = new FBXLoader()
+fbxLoader.load(
     // 1. the file to download
-    'models/monkey_textured.glb',
+    'models/Kachujin G Rosales.fbx',
     // 2. what to do on success
-    function (gltf) {
-        gltf.scene.traverse(function (child) {
+    (object) => {
+        object.traverse(function (child) {
+            console.log( child.name) // whether it's a mesh, light/ camera 
+            // if obj is a Mesh, if it's material => transparent = false
             if ((child as THREE.Mesh).isMesh) {
-                const m = child as THREE.Mesh
-                m.receiveShadow = true
-                m.castShadow = true
-            }
-            if ((child as THREE.Light).isLight) {
-                const l = child as THREE.Light
-                l.castShadow = true
-                l.shadow.bias = -0.003
-                l.shadow.mapSize.width = 2048
-                l.shadow.mapSize.height = 2048
+                // (child as THREE.Mesh).material = material
+                if ((child as THREE.Mesh).material) {
+                    ;((child as THREE.Mesh).material as THREE.MeshBasicMaterial).transparent = false
+                }
             }
         })
-        console.log(gltf.scene)
-        scene.add(gltf.scene)
+        object.scale.set(0.01, 0.01, 0.01)
+        scene.add(object)
     },
     // progress callback
     (xhr) => {
