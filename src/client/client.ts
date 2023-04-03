@@ -1,21 +1,22 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * Raycasting allows you to create a vector from a 3D point in the scene, and detect which object(s) the vector intersects.
- * The raycasting class is almost always used for mouse picking objects in the 3D scene.
- 
- * We can set up the raycaster position and direction using the set or setFromCamera methods and then call its intersectObject 
-   or intersectObjects methods to tell us many things about the scene objects that were intersected by the ray, including,
-
-    the distance of the intersection from the Raycaster position,
-    the position of the intersection in the 3D scene,
-    the face of the object that was intersected,
-    the direction of the faces normal,
-    the UV coordinate of the intersection on the face
-    and a reference to the intersected object itself.
+ * While raycasting is almost always used for mouse picking objects in the 3D scene, 
+ * it can also be used for simple collision detection.
+ * 
+ * In this example, I detect whether the orbit controls will penetrate another object 
+ * and adjust the cameras position so that it stays outside.
+ * 
+ * Essentially, I am creating a ray from the camera target to the camera position. 
+ * If there is an intersected object between, then the camera position is adjusted to the intersect point. 
+ * This prevents the camera from going behind a wall, or inside a box, or floor, 
+ * or any object which is part of the objects array being tested for an intersect.
+ * 
+ * Also, instead of using the raycaster to find the new point to position the camera in case of collision between the target and itself, 
+ * I could instead modify the opacity of the object in between and not move the camera. 
+ * Rotate the camera and notice how any object between the camera target and the camera itself, becomes transparent.
 
  * 
  * ----------------NOTE----------------
@@ -67,9 +68,9 @@ camera.position.z = 2
  */
 const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
-renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-renderer.shadowMap.enabled = true
-renderer.outputEncoding = THREE.sRGBEncoding
+// renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
+// renderer.shadowMap.enabled = true
+// renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -91,88 +92,90 @@ document.body.appendChild(renderer.domElement)
  * Nó cung cấp cho người dùng khả năng quay và di chuyển camera trong không gian 3D.
  */
 
+const raycaster = new THREE.Raycaster()
+const sceneMeshes: THREE.Mesh[] = []
+const dir = new THREE.Vector3()
+let intersects: THREE.Intersection[] = []
+
 const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
-// controls.enableDamping = true
-// controls.target.set(0, 1, 0)
+controls.enableDamping = true
+controls.addEventListener('change', function () {
+    xLine.position.copy(controls.target)
+    yLine.position.copy(controls.target)
+    zLine.position.copy(controls.target)
 
-let mixer: THREE.AnimationMixer
-let modelReady = false
+    raycaster.set(controls.target, dir.subVectors(camera.position, controls.target).normalize())
 
-// const animationActions: THREE.AnimationAction[] = []
-// let activeAction: THREE.AnimationAction
-// let lastAction: THREE.AnimationAction
-
-// const material = new THREE.LineBasicMaterial({ color: 0xff0000 })
-// const points = new Array()
-// points.push(new THREE.Vector3(0, 0, 0))
-// points.push(new THREE.Vector3(0, 0, 0.25))
-// const geometry = new THREE.BufferGeometry().setFromPoints(points)
-// const line = new THREE.Line(geometry, material)
-// scene.add(line)
-
-const arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 0.25, 0xffff00)
-scene.add(arrowHelper)
-
-const material = new THREE.MeshNormalMaterial()
-
-// const boxGeometry = new THREE.BoxGeometry(.2, .2, .2)
-const coneGeometry = new THREE.ConeGeometry(0.05, 0.2, 8)
-
-const raycaster = new THREE.Raycaster()
-const sceneMeshes: THREE.Object3D[] = []
-
-const loader = new GLTFLoader()
-
-loader.load(
-    // 1. the file to download
-    'models/monkey_textured.glb',
-    // 2. what to do on success
-    function (gltf) {
-        /* if export file .glb we didn't scale it as below
-             gltf.scene.scale.set(.01, .01, .01)
-        */
-
-        gltf.scene.traverse(function (child) {
-            if ((child as THREE.Mesh).isMesh) {
-                const m = child as THREE.Mesh
-                m.receiveShadow = true
-                m.castShadow = true
-                ;(m.material as THREE.MeshStandardMaterial).flatShading = true
-
-                // if(m.userData.name != "Plane")
-                sceneMeshes.push(m) // using when change intersects ( , false)
-            }
-            if ((child as THREE.Light).isLight) {
-                const l = child as THREE.Light
-                l.castShadow = true
-                l.shadow.bias = -0.03
-                l.shadow.mapSize.width = 2048
-                l.shadow.mapSize.height = 2048
-            }
-        })
-
-        scene.add(gltf.scene)
-        // sceneMeshes.push(gltf.scene) // using when change intersects ( , true)
-
-        // //add an animation from another file
-        // gltfLoader.load(
-        //     'models/vanguard@samba.glb',
-        //     (gltf) => {
-        //         console.log('loaded samba')
-        //         const animationAction = mixer.clipAction((gltf as any).animations[0])
-        //         animationActions.push(animationAction)
-        //         animationsFolder.add(animations, 'samba')
-    },
-    // progress callback
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-    },
-    // error callback
-    (error) => {
-        console.log(error)
+    intersects = raycaster.intersectObjects(sceneMeshes, false)
+    if (intersects.length > 0) {
+        if (intersects[0].distance < controls.target.distanceTo(camera.position)) {
+            camera.position.copy(intersects[0].point)
+        }
     }
+})
+
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshNormalMaterial({ side: THREE.DoubleSide })
 )
+floor.rotateX(-Math.PI / 2)
+floor.position.y = -1
+scene.add(floor)
+sceneMeshes.push(floor)
+
+const wall1 = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshNormalMaterial({ side: THREE.DoubleSide })
+)
+wall1.position.x = 4
+wall1.rotateY(-Math.PI / 2)
+scene.add(wall1)
+sceneMeshes.push(wall1)
+
+const wall2 = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshNormalMaterial({ side: THREE.DoubleSide })
+)
+wall2.position.z = -3
+scene.add(wall2)
+sceneMeshes.push(wall2)
+
+const cube: THREE.Mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshNormalMaterial())
+cube.position.set(-3, 0, 0)
+scene.add(cube)
+sceneMeshes.push(cube)
+
+const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshNormalMaterial({ side: THREE.DoubleSide })
+)
+ceiling.rotateX(Math.PI / 2)
+ceiling.position.y = 3
+scene.add(ceiling)
+sceneMeshes.push(ceiling)
+
+//crosshair
+const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x0000ff,
+})
+const points: THREE.Vector3[] = []
+points[0] = new THREE.Vector3(-0.1, 0, 0)
+points[1] = new THREE.Vector3(0.1, 0, 0)
+let lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+const xLine = new THREE.Line(lineGeometry, lineMaterial)
+scene.add(xLine)
+points[0] = new THREE.Vector3(0, -0.1, 0)
+points[1] = new THREE.Vector3(0, 0.1, 0)
+lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+const yLine = new THREE.Line(lineGeometry, lineMaterial)
+scene.add(yLine)
+points[0] = new THREE.Vector3(0, 0, -0.1)
+points[1] = new THREE.Vector3(0, 0, 0.1)
+lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+const zLine = new THREE.Line(lineGeometry, lineMaterial)
+scene.add(zLine)
+
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
     // 1. Cập nhật tỷ lệ khung hình (aspect) của camera theo kích thước mới của window:
@@ -228,64 +231,6 @@ function onWindowResize() {
 // }
 
 // ===================================================================================
-
-renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
-renderer.domElement.addEventListener('mousemove', onMouseMove, false)
-
-function onMouseMove(event: MouseEvent) {
-    const mouse = {
-        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
-        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
-    }
-
-    // console.log(mouse)
-
-    raycaster.setFromCamera(mouse, camera)
-
-    const intersects = raycaster.intersectObjects(sceneMeshes, false)
-
-    if (intersects.length > 0) {
-        // console.log(sceneMeshes.length + ' ' + intersects.length)
-        // console.log(intersects[0])
-        // console.log(intersects[0].object.userData.name + ' ' + intersects[0].distance + ' ')
-        // console.log((intersects[0].face as THREE.Face).normal)
-        // line.position.set(0, 0, 0)
-        // line.lookAt((intersects[0].face as THREE.Face).normal)
-        // line.position.copy(intersects[0].point)
-        const n = new THREE.Vector3()
-        n.copy((intersects[0].face as THREE.Face).normal)
-        n.transformDirection(intersects[0].object.matrixWorld)
-        arrowHelper.setDirection(n)
-        arrowHelper.position.copy(intersects[0].point)
-    }
-}
-
-function onDoubleClick(event: MouseEvent) {
-    const mouse = {
-        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
-        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
-    }
-    raycaster.setFromCamera(mouse, camera)
-
-    const intersects = raycaster.intersectObjects(sceneMeshes, false)
-
-    if (intersects.length > 0) {
-        const n = new THREE.Vector3()
-        n.copy((intersects[0].face as THREE.Face).normal)
-        n.transformDirection(intersects[0].object.matrixWorld)
-
-        // const cube = new THREE.Mesh(boxGeometry, material)
-        const cube = new THREE.Mesh(coneGeometry, material)
-
-        cube.lookAt(n)
-        cube.rotateX(Math.PI / 2)
-        cube.position.copy(intersects[0].point)
-        cube.position.addScaledVector(n, 0.1)
-
-        scene.add(cube)
-        sceneMeshes.push(cube)
-    }
-}
 
 const stats = Stats()
 document.body.appendChild(stats.dom)
