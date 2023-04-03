@@ -4,16 +4,18 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
 /** ==============================================================
- * We don't need to download animations from other websites, we can create our own.
- * Using Blender, you can create a model 
- * and then adjust the positions, scales and rotations of its parts by creating key frames on the timeline editor.
-  
- * Test your animation works by using the play options on the timeline editor in Blender, 
- * and then export your model as GLB(preferred) or GLTF with animation options selected for the export.
-  
- * After exporting your model, you can drag the GLB/GLTF file from your filesystem, 
- * onto this example scene below. It will read the file and create a new checkbox for every animation clip that it finds. 
- * You can enable/disable each animation independently.
+ * Raycasting allows you to create a vector from a 3D point in the scene, and detect which object(s) the vector intersects.
+ * The raycasting class is almost always used for mouse picking objects in the 3D scene.
+ 
+ * We can set up the raycaster position and direction using the set or setFromCamera methods and then call its intersectObject 
+   or intersectObjects methods to tell us many things about the scene objects that were intersected by the ray, including,
+
+    the distance of the intersection from the Raycaster position,
+    the position of the intersection in the 3D scene,
+    the face of the object that was intersected,
+    the direction of the faces normal,
+    the UV coordinate of the intersection on the face
+    and a reference to the intersected object itself.
 
  * 
  * ----------------NOTE----------------
@@ -56,19 +58,18 @@ scene.add(new THREE.AxesHelper(5))
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-// camera.position.z = 2
+camera.position.z = 2
 
 // camera.position.set(0.8, 1.4, 1.0)
-camera.position.set(4, 4, 4)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
-const renderer = new THREE.WebGLRenderer()
+const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
-// renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-// renderer.shadowMap.enabled = true
-// renderer.outputEncoding = THREE.sRGBEncoding
+renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
+renderer.shadowMap.enabled = true
+renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -92,7 +93,7 @@ document.body.appendChild(renderer.domElement)
 
 const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
-controls.enableDamping = true
+// controls.enableDamping = true
 // controls.target.set(0, 1, 0)
 
 let mixer: THREE.AnimationMixer
@@ -102,206 +103,76 @@ let modelReady = false
 // let activeAction: THREE.AnimationAction
 // let lastAction: THREE.AnimationAction
 
-// Note that since Three release 148, you will find the Draco libraries in the `.\node_modules\three\examples\jsm\libs\draco\` folder.
+// const material = new THREE.LineBasicMaterial({ color: 0xff0000 })
+// const points = new Array()
+// points.push(new THREE.Vector3(0, 0, 0))
+// points.push(new THREE.Vector3(0, 0, 0.25))
+// const geometry = new THREE.BufferGeometry().setFromPoints(points)
+// const line = new THREE.Line(geometry, material)
+// scene.add(line)
 
-const gltfLoader = new GLTFLoader()
+const arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(), new THREE.Vector3(), 0.25, 0xffff00)
+scene.add(arrowHelper)
 
-const dropzone = document.getElementById('dropzone') as HTMLDivElement
+const material = new THREE.MeshNormalMaterial()
 
-dropzone.ondragover = dropzone.ondragenter = function (evt) {
-    evt.preventDefault()
-}
+// const boxGeometry = new THREE.BoxGeometry(.2, .2, .2)
+const coneGeometry = new THREE.ConeGeometry(0.05, 0.2, 8)
 
-dropzone.ondrop = function (evt: DragEvent) {
-    evt.stopPropagation()
-    evt.preventDefault()
+const raycaster = new THREE.Raycaster()
+const sceneMeshes: THREE.Object3D[] = []
 
-    //clear the scene
-    for (let i = scene.children.length - 1; i >= 0; i--) {
-        scene.remove(scene.children[i])
-    }
-    //clear the checkboxes
-    const myNode = document.getElementById('animationsPanel') as HTMLDivElement
-    while (myNode.firstChild) {
-        myNode.removeChild(myNode.lastChild as any)
-    }
+const loader = new GLTFLoader()
 
-    const axesHelper = new THREE.AxesHelper(5)
-    scene.add(axesHelper)
+loader.load(
+    // 1. the file to download
+    'models/monkey_textured.glb',
+    // 2. what to do on success
+    function (gltf) {
+        /* if export file .glb we didn't scale it as below
+             gltf.scene.scale.set(.01, .01, .01)
+        */
 
-    const light1 = new THREE.DirectionalLight(new THREE.Color(0xffcccc))
-    light1.position.set(-1, 1, 1)
-    scene.add(light1)
+        gltf.scene.traverse(function (child) {
+            if ((child as THREE.Mesh).isMesh) {
+                const m = child as THREE.Mesh
+                m.receiveShadow = true
+                m.castShadow = true
+                ;(m.material as THREE.MeshStandardMaterial).flatShading = true
 
-    const light2 = new THREE.DirectionalLight(new THREE.Color(0xccffcc))
-    light2.position.set(1, 1, 1)
-    scene.add(light2)
-
-    const light3 = new THREE.DirectionalLight(new THREE.Color(0xccccff))
-    light3.position.set(0, -1, 0)
-    scene.add(light3)
-
-    const files = (evt.dataTransfer as DataTransfer).files
-    const reader = new FileReader()
-    reader.onload = function () {
-        gltfLoader.parse(
-            reader.result as string,
-            '/',
-            (gltf: GLTF) => {
-                console.log(gltf.scene)
-
-                mixer = new THREE.AnimationMixer(gltf.scene)
-
-                console.log(gltf.animations)
-
-                if (gltf.animations.length > 0) {
-                    const animationsPanel = document.getElementById(
-                        'animationsPanel'
-                    ) as HTMLDivElement
-                    const ul = document.createElement('UL') as HTMLUListElement
-                    const ulElem = animationsPanel.appendChild(ul)
-
-                    gltf.animations.forEach((a: THREE.AnimationClip, i) => {
-                        const li = document.createElement('UL') as HTMLLIElement
-                        const liElem = ulElem.appendChild(li)
-
-                        const checkBox = document.createElement('INPUT') as HTMLInputElement
-                        checkBox.id = 'checkbox_' + i
-                        checkBox.type = 'checkbox'
-                        checkBox.addEventListener('change', (e: Event) => {
-                            if ((e.target as HTMLInputElement).checked) {
-                                mixer.clipAction((gltf as any).animations[i]).play()
-                            } else {
-                                mixer.clipAction((gltf as any).animations[i]).stop()
-                            }
-                        })
-                        liElem.appendChild(checkBox)
-
-                        const label = document.createElement('LABEL') as HTMLLabelElement
-                        label.htmlFor = 'checkbox_' + i
-                        label.innerHTML = a.name
-                        liElem.appendChild(label)
-                    })
-
-                    if (gltf.animations.length > 1) {
-                        const btnPlayAll = document.getElementById(
-                            'btnPlayAll'
-                        ) as HTMLButtonElement
-                        btnPlayAll.addEventListener('click', (e: Event) => {
-                            mixer.stopAllAction()
-                            gltf.animations.forEach((a: THREE.AnimationClip) => {
-                                mixer.clipAction(a).play()
-                            })
-                        })
-
-                        btnPlayAll.style.display = 'block'
-                    }
-                } else {
-                    const animationsPanel = document.getElementById(
-                        'animationsPanel'
-                    ) as HTMLDivElement
-                    animationsPanel.innerHTML = 'No animations found in model'
-                }
-
-                scene.add(gltf.scene)
-
-                const bbox = new THREE.Box3().setFromObject(gltf.scene)
-                controls.target.x = (bbox.min.x + bbox.max.x) / 2
-                controls.target.y = (bbox.min.y + bbox.max.y) / 2
-                controls.target.z = (bbox.min.z + bbox.max.z) / 2
-
-                modelReady = true
-            },
-            (error) => {
-                console.log(error)
+                // if(m.userData.name != "Plane")
+                sceneMeshes.push(m) // using when change intersects ( , false)
             }
-        )
+            if ((child as THREE.Light).isLight) {
+                const l = child as THREE.Light
+                l.castShadow = true
+                l.shadow.bias = -0.03
+                l.shadow.mapSize.width = 2048
+                l.shadow.mapSize.height = 2048
+            }
+        })
+
+        scene.add(gltf.scene)
+        // sceneMeshes.push(gltf.scene) // using when change intersects ( , true)
+
+        // //add an animation from another file
+        // gltfLoader.load(
+        //     'models/vanguard@samba.glb',
+        //     (gltf) => {
+        //         console.log('loaded samba')
+        //         const animationAction = mixer.clipAction((gltf as any).animations[0])
+        //         animationActions.push(animationAction)
+        //         animationsFolder.add(animations, 'samba')
+    },
+    // progress callback
+    (xhr) => {
+        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+    },
+    // error callback
+    (error) => {
+        console.log(error)
     }
-    reader.readAsArrayBuffer(files[0])
-}
-
-// gltfLoader.load(
-//     // 1. the file to download
-//     'models/vanguard.glb',
-//     // 2. what to do on success
-//     (gltf) => {
-//         /* if export file .glb we didn't scale it as below
-//              gltf.scene.scale.set(.01, .01, .01)
-//         */
-
-//         mixer = new THREE.AnimationMixer(gltf.scene)
-
-//         const animationAction = mixer.clipAction((gltf as any).animations[0])
-//         animationActions.push(animationAction)
-//         animationsFolder.add(animations, 'default')
-//         activeAction = animationActions[0]
-
-//         scene.add(gltf.scene)
-//         //add an animation from another file
-//         gltfLoader.load(
-//             'models/vanguard@samba.glb',
-//             (gltf) => {
-//                 console.log('loaded samba')
-//                 const animationAction = mixer.clipAction((gltf as any).animations[0])
-//                 animationActions.push(animationAction)
-//                 animationsFolder.add(animations, 'samba')
-
-//                 //add an animation from another file
-//                 gltfLoader.load(
-//                     'models/vanguard@bellydance.glb',
-//                     (gltf) => {
-//                         console.log('loaded bellydance')
-//                         const animationAction = mixer.clipAction((gltf as any).animations[0])
-//                         animationActions.push(animationAction)
-//                         animationsFolder.add(animations, 'bellydance')
-
-//                         //add an animation from another file
-//                         gltfLoader.load(
-//                             'models/vanguard@goofyrunning.glb',
-//                             (gltf) => {
-//                                 console.log('loaded goofyrunning')
-//                                 ;(gltf as any).animations[0].tracks.shift() //delete the specific track that moves the object forward while running
-//                                 const animationAction = mixer.clipAction(
-//                                     (gltf as any).animations[0]
-//                                 )
-//                                 animationActions.push(animationAction)
-//                                 animationsFolder.add(animations, 'goofyrunning')
-
-//                                 modelReady = true
-//                             },
-//                             (xhr) => {
-//                                 console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-//                             },
-//                             (error) => {
-//                                 console.log(error)
-//                             }
-//                         )
-//                     },
-//                     (xhr) => {
-//                         console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-//                     },
-//                     (error) => {
-//                         console.log(error)
-//                     }
-//                 )
-//             },
-//             (xhr) => {
-//                 console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-//             },
-//             (error) => {
-//                 console.log(error)
-//             }
-//         )
-//     },
-//     // progress callback
-//     (xhr) => {
-//         console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-//     },
-//     // error callback
-//     (error) => {
-//         console.log(error)
-//     }
-// )
+)
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
     // 1. Cập nhật tỷ lệ khung hình (aspect) của camera theo kích thước mới của window:
@@ -316,8 +187,8 @@ function onWindowResize() {
      * và độ phân giải trên màn hình khi kích thước của cửa sổ trình duyệt thay đổi.
      */
 }
-const stats = Stats()
-document.body.appendChild(stats.dom)
+
+// ===================================================================================
 
 // const animations = {
 //     default: function () {
@@ -346,7 +217,7 @@ document.body.appendChild(stats.dom)
 //     }
 // }
 
-const clock = new THREE.Clock()
+// const clock = new THREE.Clock()
 
 // const data = {
 //     color: light.color.getHex(),
@@ -356,8 +227,71 @@ const clock = new THREE.Clock()
 //     shadowMapSizeHeight: 512,
 // }
 
+// ===================================================================================
+
+renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
+renderer.domElement.addEventListener('mousemove', onMouseMove, false)
+
+function onMouseMove(event: MouseEvent) {
+    const mouse = {
+        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
+    }
+
+    // console.log(mouse)
+
+    raycaster.setFromCamera(mouse, camera)
+
+    const intersects = raycaster.intersectObjects(sceneMeshes, false)
+
+    if (intersects.length > 0) {
+        // console.log(sceneMeshes.length + ' ' + intersects.length)
+        // console.log(intersects[0])
+        // console.log(intersects[0].object.userData.name + ' ' + intersects[0].distance + ' ')
+        // console.log((intersects[0].face as THREE.Face).normal)
+        // line.position.set(0, 0, 0)
+        // line.lookAt((intersects[0].face as THREE.Face).normal)
+        // line.position.copy(intersects[0].point)
+        const n = new THREE.Vector3()
+        n.copy((intersects[0].face as THREE.Face).normal)
+        n.transformDirection(intersects[0].object.matrixWorld)
+        arrowHelper.setDirection(n)
+        arrowHelper.position.copy(intersects[0].point)
+    }
+}
+
+function onDoubleClick(event: MouseEvent) {
+    const mouse = {
+        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
+    }
+    raycaster.setFromCamera(mouse, camera)
+
+    const intersects = raycaster.intersectObjects(sceneMeshes, false)
+
+    if (intersects.length > 0) {
+        const n = new THREE.Vector3()
+        n.copy((intersects[0].face as THREE.Face).normal)
+        n.transformDirection(intersects[0].object.matrixWorld)
+
+        // const cube = new THREE.Mesh(boxGeometry, material)
+        const cube = new THREE.Mesh(coneGeometry, material)
+
+        cube.lookAt(n)
+        cube.rotateX(Math.PI / 2)
+        cube.position.copy(intersects[0].point)
+        cube.position.addScaledVector(n, 0.1)
+
+        scene.add(cube)
+        sceneMeshes.push(cube)
+    }
+}
+
+const stats = Stats()
+document.body.appendChild(stats.dom)
+
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
-function animate() {
+var animate = function () {
     requestAnimationFrame(animate)
 
     controls.update()
@@ -371,8 +305,11 @@ function animate() {
     // trackball controls needs to be updated in the animation loop before it will work
     // controls.update()
 
-    if (modelReady) mixer.update(clock.getDelta())
+    // if (modelReady) mixer.update(clock.getDelta())
 
+    // if (sceneMeshes.length > 1) {
+    //     sceneMeshes[1].rotation.x += 0.002
+    // }
     render()
 
     stats.update()
