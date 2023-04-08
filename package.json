@@ -25,6 +25,7 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@tweenjs/tween.js": "^19.0.0",
     "express": "^4.17.3"
   }
 }
