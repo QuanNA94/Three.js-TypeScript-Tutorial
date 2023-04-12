@@ -262,14 +262,15 @@ function onDoubleClick(event: MouseEvent) {
                 },
                 (1000 / 2) * distance //walks 2 meters a second * the distance
             )
-            //             .onUpdate(() => {
-            //                 controls.target.set(
-            //                     modelMesh.position.x,
-            //                     modelMesh.position.y + 1,
-            //                     modelMesh.position.z)
-            //             //     light1.target = modelMesh
-            //             //     light2.target = modelMesh
-            //             })
+            .onUpdate(() => {
+                controls.target.set(
+                    modelMesh.position.x,
+                    modelMesh.position.y + 1,
+                    modelMesh.position.z
+                )
+                //             //     light1.target = modelMesh
+                //             //     light2.target = modelMesh
+            })
             .start()
         //             //.onComplete(() => setAction(animationActions[2]))
     }
