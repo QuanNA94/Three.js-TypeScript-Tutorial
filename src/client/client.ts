@@ -247,11 +247,11 @@ function onDoubleClick(event: MouseEvent) {
 
     if (intersects.length > 0) {
         const p = intersects[0].point
-        //         //const distance = modelMesh.position.distanceTo(p)
+        const distance = modelMesh.position.distanceTo(p)
         //         // const rotationMatrix = new THREE.Matrix4()
         //         // rotationMatrix.lookAt(p, modelMesh.position, modelMesh.up)
         //         // targetQuaternion.setFromRotationMatrix(rotationMatrix)
-        // setAction(animationActions[3])
+        setAction(animationActions[3])
         //         //TWEEN.removeAll()
         new TWEEN.Tween(modelMesh.position)
             .to(
@@ -260,8 +260,8 @@ function onDoubleClick(event: MouseEvent) {
                     y: p.y,
                     z: p.z,
                 },
-                1000
-            ) /// 2 * distance) //walks 2 meters a second * the distance
+                (1000 / 2) * distance //walks 2 meters a second * the distance
+            )
             //             .onUpdate(() => {
             //                 controls.target.set(
             //                     modelMesh.position.x,
