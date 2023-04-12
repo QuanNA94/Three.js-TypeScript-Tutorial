@@ -2,16 +2,15 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import { GUI } from 'dat.gui'
 import TWEEN from '@tweenjs/tween.js'
 /** ==============================================================
- * Tweenjs is a JavaScript tweening engine.
- *
- * A tween (from in-between) is a concept that allows you to change the values of the properties of an object smoothly. 
- * We can decide how long it should take, and if there should be a delay, 
- * and what to do each time the tween is updated, whether it should repeat and other things.
+ * In this lesson, I will demonstrate using a mixture of the concepts demonstrated 
+ * in the previous lessons GLTF Animations, Raycaster, tween.js and SpotLight Shadow
  * 
- *  npm install @tweenjs/tween.js
- *  import TWEEN from '@tweenjs/tween.js'
+ * I will import a GLTF model, import several animations clips, 
+ * add the RayCaster and tween the location of the GLTF model to the clicked mouse coordinates 
+ * so that the model animates to the new location.
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -31,6 +30,29 @@ scene.add(new THREE.AxesHelper(5))
 // light.shadow.mapSize.height = 1024
 // scene.add(light)
 
+const light1 = new THREE.PointLight() //new THREE.SpotLight();
+light1.position.set(2.5, 5, 2.5)
+// light1.angle = Math.PI / 8
+// light1.penumbra = 0.5
+
+// light1.castShadow = true
+// light1.shadow.mapSize.width = 1024
+// light1.shadow.mapSize.height = 1024
+// light1.shadow.camera.near = 0.5
+// light1.shadow.camera.far = 20
+scene.add(light1)
+
+const light2 = new THREE.PointLight()
+light2.position.set(-2.5, 5, 2.5)
+// light2.angle = Math.PI / 8
+// light2.penumbra = 0.5
+// light2.castShadow = true;
+// light2.shadow.mapSize.width = 1024;
+// light2.shadow.mapSize.height = 1024;
+// light2.shadow.camera.near = 0.5;
+// light2.shadow.camera.far = 20
+scene.add(light2)
+
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
  */
@@ -47,18 +69,18 @@ scene.add(new THREE.AxesHelper(5))
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 // camera.position.x = 2
 // camera.position.y = 1
-camera.position.z = 2
+// camera.position.z = 2
 
-// camera.position.set(15, 15, 15)
+camera.position.set(0.8, 1.4, 1.0)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
 const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
-renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-renderer.shadowMap.enabled = true
-renderer.outputEncoding = THREE.sRGBEncoding
+// renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
+// renderer.shadowMap.enabled = true
+// renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 /** Thêm đối tượng renderer vào thẻ HTML sử dụng hàm appendChild(renderer.domElement).
@@ -83,54 +105,105 @@ document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
 controls.enableDamping = true
+controls.target.set(0, 1, 0)
 // controls.addEventListener('change', render) // this line is uneccessary if you are re-render
 
-const sceneMeshes: THREE.Mesh[] = []
-let monkey: THREE.Mesh
+// const sceneMeshes: THREE.Mesh[] = []
+let sceneMeshes: any = []
 
-// let intersectedObject: THREE.Object3D | null
-// const originalMaterials: { [id: string]: THREE.Material | THREE.Material[] } = {}
-// const highlightedMaterial = new THREE.MeshBasicMaterial({
-//     wireframe: true,
-//     color: 0x00ff00,
-// })
+const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(25, 25)
+const texture = new THREE.TextureLoader().load('img/grid.png')
+const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({ map: texture }))
+plane.rotateX(-Math.PI / 2)
+// plane.receiveShadow = true
+scene.add(plane)
+sceneMeshes.push(plane)
 
-const loader = new GLTFLoader()
-loader.load(
-    'models/monkey_textured.glb',
-    function (gltf) {
-        gltf.scene.traverse(function (child) {
-            if ((child as THREE.Mesh).isMesh) {
-                let m = child as THREE.Mesh
-                m.receiveShadow = true
-                m.castShadow = true
-                //the sphere and plane will not be mouse picked. THe plane will receive shadows while everything else casts shadows.
-                // switch (m.name) {
-                //     case 'Plane':
-                //         m.receiveShadow = true
-                //         break
+let mixer: THREE.AnimationMixer
+let modelReady = false
+let modelMesh: THREE.Object3D
+const animationActions: THREE.AnimationAction[] = []
+let activeAction: THREE.AnimationAction
+let lastAction: THREE.AnimationAction
 
-                //     default:
-                //         m.castShadow = true
-                // }
-                // pickableObjects.push(m)
+const gltfLoader = new GLTFLoader()
 
-                if (child.name === 'Plane') {
-                    sceneMeshes.push(m)
-                } else if (child.name === 'Suzanne') {
-                    monkey = m
-                }
-            }
-            if ((child as THREE.Light).isLight) {
-                const l = child as THREE.Light
-                l.castShadow = true
-                l.shadow.bias = -0.003
-                l.shadow.mapSize.width = 2048
-                l.shadow.mapSize.height = 2048
-            }
-        })
+gltfLoader.load(
+    'models/vanguard.glb',
+    (gltf) => {
+        // gltf.scene.traverse(function (child) {
+        //     if ((child as THREE.Mesh).isMesh) {
+        //         let m = child as THREE.Mesh
+        //         //m.castShadow = true
+        //         m.frustumCulled = false
+        //     }
+        // })
+
+        mixer = new THREE.AnimationMixer(gltf.scene)
+
+        let animationAction = mixer.clipAction((gltf as any).animations[0])
+        animationActions.push(animationAction)
+        animationsFolder.add(animations, 'default')
+        activeAction = animationActions[0]
+
         scene.add(gltf.scene)
-        // render()
+        modelMesh = gltf.scene
+
+        //add an animation from another file
+        gltfLoader.load(
+            'models/vanguard@samba.glb',
+            (gltf) => {
+                console.log('loaded samba')
+                const animationAction = mixer.clipAction((gltf as any).animations[0])
+                animationActions.push(animationAction)
+                animationsFolder.add(animations, 'samba')
+
+                //add an animation from another file
+                gltfLoader.load(
+                    'models/vanguard@bellydance.glb',
+                    (gltf) => {
+                        console.log('loaded bellydance')
+                        const animationAction = mixer.clipAction((gltf as any).animations[0])
+                        animationActions.push(animationAction)
+                        animationsFolder.add(animations, 'bellydance')
+
+                        //add an animation from another file
+                        gltfLoader.load(
+                            'models/vanguard@goofyrunning.glb',
+                            (gltf) => {
+                                console.log('loaded goofyrunning')
+                                ;(gltf as any).animations[0].tracks.shift() //delete the specific track that moves the object forward while running
+                                const animationAction = mixer.clipAction(
+                                    (gltf as any).animations[0]
+                                )
+                                animationActions.push(animationAction)
+                                animationsFolder.add(animations, 'goofyrunning')
+
+                                modelReady = true
+                            },
+                            (xhr) => {
+                                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+                            },
+                            (error) => {
+                                console.log(error)
+                            }
+                        )
+                    },
+                    (xhr) => {
+                        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+                    },
+                    (error) => {
+                        console.log(error)
+                    }
+                )
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        )
     },
     (xhr) => {
         console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
@@ -139,7 +212,6 @@ loader.load(
         console.log(error)
     }
 )
-
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
     // 1. Cập nhật tỷ lệ khung hình (aspect) của camera theo kích thước mới của window:
@@ -157,76 +229,51 @@ function onWindowResize() {
 }
 
 const raycaster = new THREE.Raycaster()
-// let intersects: THREE.Intersection[]
+// //const targetQuaternion = new THREE.Quaternion()
+
+renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
+
 const mouse = new THREE.Vector2()
 
 function onDoubleClick(event: MouseEvent) {
-    mouse.set(
-        (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
-        -(event.clientY / renderer.domElement.clientHeight) * 2 + 1
-    )
+    const mouse = {
+        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
+    }
+
     raycaster.setFromCamera(mouse, camera)
 
     const intersects = raycaster.intersectObjects(sceneMeshes, false)
 
     if (intersects.length > 0) {
         const p = intersects[0].point
-
-        //controls.target.set(p.x, p.y, p.z)
-
-        // new TWEEN.Tween(controls.target)
-        //     .to({
-        //         x: p.x,
-        //         y: p.y,
-        //         z: p.z
-        //     }, 500)
-        //     //.delay (1000)
-        //     .easing(TWEEN.Easing.Cubic.Out)
-        //     //.onUpdate(() => render())
-        //     .start()
-
-        new TWEEN.Tween(monkey.position)
+        //         //const distance = modelMesh.position.distanceTo(p)
+        //         // const rotationMatrix = new THREE.Matrix4()
+        //         // rotationMatrix.lookAt(p, modelMesh.position, modelMesh.up)
+        //         // targetQuaternion.setFromRotationMatrix(rotationMatrix)
+        // setAction(animationActions[3])
+        //         //TWEEN.removeAll()
+        new TWEEN.Tween(modelMesh.position)
             .to(
                 {
                     x: p.x,
-                    // y: p.y + 1,
+                    y: p.y,
                     z: p.z,
                 },
-                500
-            )
+                1000
+            ) /// 2 * distance) //walks 2 meters a second * the distance
+            //             .onUpdate(() => {
+            //                 controls.target.set(
+            //                     modelMesh.position.x,
+            //                     modelMesh.position.y + 1,
+            //                     modelMesh.position.z)
+            //             //     light1.target = modelMesh
+            //             //     light2.target = modelMesh
+            //             })
             .start()
-
-        new TWEEN.Tween(monkey.position)
-            .to(
-                {
-                    // x: p.x,
-                    y: p.y + 3,
-                    // z: p.z,
-                },
-                250
-            )
-            //.delay (1000)
-            .easing(TWEEN.Easing.Cubic.Out)
-            //.onUpdate(() => render())
-            .start()
-            .onComplete(() => {
-                new TWEEN.Tween(monkey.position)
-                    .to(
-                        {
-                            // x: p.x,
-                            y: p.y + 1,
-                            // z: p.z,
-                        },
-                        250
-                    )
-                    //.delay (250)
-                    .easing(TWEEN.Easing.Bounce.Out)
-                    //.onUpdate(() => render())
-                    .start()
-            })
+        //             //.onComplete(() => setAction(animationActions[2]))
     }
 }
-renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
 
 // ===================================================================================
 
@@ -272,13 +319,46 @@ renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
 const stats = Stats()
 document.body.appendChild(stats.dom)
 
+const animations = {
+    default: function () {
+        setAction(animationActions[0])
+    },
+    samba: function () {
+        setAction(animationActions[1])
+    },
+    bellydance: function () {
+        setAction(animationActions[2])
+    },
+    goofyrunning: function () {
+        setAction(animationActions[3])
+    },
+}
+
+const setAction = (toAction: THREE.AnimationAction) => {
+    if (toAction != activeAction) {
+        lastAction = activeAction
+        activeAction = toAction
+        //lastAction.stop()
+        lastAction.fadeOut(0.2)
+        activeAction.reset()
+        activeAction.fadeIn(0.2)
+        activeAction.play()
+    }
+}
+
+const gui = new GUI()
+const animationsFolder = gui.addFolder('Animations')
+animationsFolder.open()
+
+const clock = new THREE.Clock()
+let delta = 0
+
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 var animate = function () {
     requestAnimationFrame(animate)
 
     controls.update()
 
-    TWEEN.update()
     // helper.update()
 
     // torus.forEach((t) => {
@@ -288,7 +368,16 @@ var animate = function () {
     // trackball controls needs to be updated in the animation loop before it will work
     // controls.update()
 
-    // if (modelReady) mixer.update(clock.getDelta())
+    if (modelReady) {
+        delta = clock.getDelta()
+        mixer.update(delta)
+
+        // if (!modelMesh.quaternion.equals(targetQuaternion)) {
+        //     modelMesh.quaternion.rotateTowards(targetQuaternion, delta * 10)
+        // }
+    }
+
+    TWEEN.update()
 
     // if (sceneMeshes.length > 1) {
     //     sceneMeshes[1].rotation.x += 0.002
