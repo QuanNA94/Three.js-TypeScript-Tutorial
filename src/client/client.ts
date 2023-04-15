@@ -30,27 +30,27 @@ scene.add(new THREE.AxesHelper(5))
 // light.shadow.mapSize.height = 1024
 // scene.add(light)
 
-const light1 = new THREE.PointLight() //new THREE.SpotLight();
+const light1 = new THREE.SpotLight() //new THREE.SpotLight();
 light1.position.set(2.5, 5, 2.5)
-// light1.angle = Math.PI / 8
-// light1.penumbra = 0.5
+light1.angle = Math.PI / 8
+light1.penumbra = 0.5
 
-// light1.castShadow = true
-// light1.shadow.mapSize.width = 1024
-// light1.shadow.mapSize.height = 1024
-// light1.shadow.camera.near = 0.5
-// light1.shadow.camera.far = 20
+light1.castShadow = true
+light1.shadow.mapSize.width = 1024
+light1.shadow.mapSize.height = 1024
+light1.shadow.camera.near = 0.5
+light1.shadow.camera.far = 20
 scene.add(light1)
 
-const light2 = new THREE.PointLight()
+const light2 = new THREE.SpotLight()
 light2.position.set(-2.5, 5, 2.5)
-// light2.angle = Math.PI / 8
-// light2.penumbra = 0.5
-// light2.castShadow = true;
-// light2.shadow.mapSize.width = 1024;
-// light2.shadow.mapSize.height = 1024;
-// light2.shadow.camera.near = 0.5;
-// light2.shadow.camera.far = 20
+light2.angle = Math.PI / 8
+light2.penumbra = 0.5
+light2.castShadow = true
+light2.shadow.mapSize.width = 1024
+light2.shadow.mapSize.height = 1024
+light2.shadow.camera.near = 0.5
+light2.shadow.camera.far = 20
 scene.add(light2)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
@@ -79,7 +79,7 @@ camera.position.set(0.8, 1.4, 1.0)
 const renderer: any = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
 // renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-// renderer.shadowMap.enabled = true
+renderer.shadowMap.enabled = true
 // renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
@@ -115,7 +115,7 @@ const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(25, 25)
 const texture = new THREE.TextureLoader().load('img/grid.png')
 const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({ map: texture }))
 plane.rotateX(-Math.PI / 2)
-// plane.receiveShadow = true
+plane.receiveShadow = true
 scene.add(plane)
 sceneMeshes.push(plane)
 
@@ -131,13 +131,13 @@ const gltfLoader = new GLTFLoader()
 gltfLoader.load(
     'models/vanguard.glb',
     (gltf) => {
-        // gltf.scene.traverse(function (child) {
-        //     if ((child as THREE.Mesh).isMesh) {
-        //         let m = child as THREE.Mesh
-        //         //m.castShadow = true
-        //         m.frustumCulled = false
-        //     }
-        // })
+        gltf.scene.traverse(function (child) {
+            if ((child as THREE.Mesh).isMesh) {
+                let m = child as THREE.Mesh
+                m.castShadow = true
+                m.frustumCulled = false // zoom to object and dont make it through out the object
+            }
+        })
 
         mixer = new THREE.AnimationMixer(gltf.scene)
 
@@ -229,7 +229,7 @@ function onWindowResize() {
 }
 
 const raycaster = new THREE.Raycaster()
-// //const targetQuaternion = new THREE.Quaternion()
+const targetQuaternion = new THREE.Quaternion()
 
 renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
 
@@ -248,11 +248,15 @@ function onDoubleClick(event: MouseEvent) {
     if (intersects.length > 0) {
         const p = intersects[0].point
         const distance = modelMesh.position.distanceTo(p)
-        //         // const rotationMatrix = new THREE.Matrix4()
-        //         // rotationMatrix.lookAt(p, modelMesh.position, modelMesh.up)
-        //         // targetQuaternion.setFromRotationMatrix(rotationMatrix)
+
+        // modelMesh.lookAt(p)
+
+        const rotationMatrix = new THREE.Matrix4()
+        rotationMatrix.lookAt(p, modelMesh.position, modelMesh.up)
+        targetQuaternion.setFromRotationMatrix(rotationMatrix)
+
         setAction(animationActions[3])
-        //         //TWEEN.removeAll()
+        TWEEN.removeAll()
         new TWEEN.Tween(modelMesh.position)
             .to(
                 {
@@ -268,11 +272,16 @@ function onDoubleClick(event: MouseEvent) {
                     modelMesh.position.y + 1,
                     modelMesh.position.z
                 )
-                //             //     light1.target = modelMesh
-                //             //     light2.target = modelMesh
+                // light follow the object
+                light1.target = modelMesh
+                light2.target = modelMesh
             })
             .start()
-        //             //.onComplete(() => setAction(animationActions[2]))
+            .onComplete(() => {
+                setAction(animationActions[2])
+                activeAction.loop = THREE.LoopOnce
+
+            })
     }
 }
 
@@ -373,9 +382,10 @@ var animate = function () {
         delta = clock.getDelta()
         mixer.update(delta)
 
-        // if (!modelMesh.quaternion.equals(targetQuaternion)) {
-        //     modelMesh.quaternion.rotateTowards(targetQuaternion, delta * 10)
-        // }
+        // the object turn down
+        if (!modelMesh.quaternion.equals(targetQuaternion)) {
+            modelMesh.quaternion.rotateTowards(targetQuaternion, delta * 10)
+        }
     }
 
     TWEEN.update()
