@@ -1,16 +1,33 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { GUI } from 'dat.gui'
-import TWEEN from '@tweenjs/tween.js'
 /** ==============================================================
- * In this lesson, I will demonstrate using a mixture of the concepts demonstrated 
- * in the previous lessons GLTF Animations, Raycaster, tween.js and SpotLight Shadow
+ * Sometimes you only need a simple positional transform to occur over time. 
+ * The tween library works very well, but it could be over engineering if you don't actually need all the features that it offers.
  * 
- * I will import a GLTF model, import several animations clips, 
- * add the RayCaster and tween the location of the GLTF model to the clicked mouse coordinates 
- * so that the model animates to the new location.
+ * If you only want to move an object from A to B and, and nothing else then you can use the Vector3 .lerp and .lerpVectors methods.
+ * 
+ * EX: 
+ *  ====================================================================================================
+ * || (method) Vector3.lerp(v1: THREE.Vector3, alpha: number): THREE.Vector3                            ||
+ * || (method) Vector3.lerpVectors(v1: THREE.Vector3, v2: THREE.Vector3, alpha: number): THREE.Vector3  ||
+ *  ====================================================================================================
+ * eg,  
+ * cube.position.lerp(new THREE.Vector3(1, 2, 3), 0.05)
+ * 
+ * =====================================================================================================================
+ * v1 : Is the vector to lerp towards.
+ * alpha : Is the percent distance along the line from the current vector to the v1.
+ * v2 : If using .lerpVectors, then you can set an alternate start vector3 to lerp from rather that the current vector3.
+ * =====================================================================================================================
+ * Calling .lerp during an animation loop will appear to mimic a Tween using a TWEEN.Easing.Cubic.Out
+ * Calling .lerpVectors is useful if you want to slide an object along an arbitrary line depending on the alpha value. Amongst other things.
+ * Set alpha to low number such as 0.1, and the vector will appear to lerp more slowly, slowing down as it gets closer to the target vector.
+ * Set alpha to 1.0, and the tween will happen instantly in one render cycle.
+ * Double-click on the floor in the example to see a slower lerp. 
+ * Then experiment with the alphas to see a faster lerp and slide a second cube along a line between the first cube and the starting position.
+
   ============================================================== */
 
 /** [1] Scene (Cảnh): là một đối tượng Three.js chứa tất cả các đối tượng,
@@ -18,7 +35,7 @@ import TWEEN from '@tweenjs/tween.js'
  */
 // tạo một đối tượng scene mới,sau đó thêm đối tượng AxesHelper vào scene
 const scene = new THREE.Scene()
-scene.add(new THREE.AxesHelper(5))
+// scene.add(new THREE.AxesHelper(5))
 
 /** [7] Light (Ánh sáng): Được sử dụng để tạo ra ánh sáng trong cảnh, giúp các đối tượng 3D có thể được hiển thị rõ ràng hơn.
  *  Three.js hỗ trợ nhiều loại ánh sáng khác nhau, bao gồm AmbientLight, DirectionalLight, và PointLight.
@@ -29,29 +46,6 @@ scene.add(new THREE.AxesHelper(5))
 // light.shadow.mapSize.width = 1024
 // light.shadow.mapSize.height = 1024
 // scene.add(light)
-
-const light1 = new THREE.SpotLight() //new THREE.SpotLight();
-light1.position.set(2.5, 5, 2.5)
-light1.angle = Math.PI / 8
-light1.penumbra = 0.5
-
-light1.castShadow = true
-light1.shadow.mapSize.width = 1024
-light1.shadow.mapSize.height = 1024
-light1.shadow.camera.near = 0.5
-light1.shadow.camera.far = 20
-scene.add(light1)
-
-const light2 = new THREE.SpotLight()
-light2.position.set(-2.5, 5, 2.5)
-light2.angle = Math.PI / 8
-light2.penumbra = 0.5
-light2.castShadow = true
-light2.shadow.mapSize.width = 1024
-light2.shadow.mapSize.height = 1024
-light2.shadow.camera.near = 0.5
-light2.shadow.camera.far = 20
-scene.add(light2)
 
 /**  AxesHelper là một class của Three.js: tạo 1 trục tọa độ 3D
  *  với các đường dẫn khác màu sắc, ở đây trục có độ dài 5 đơn vị
@@ -71,15 +65,15 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 // camera.position.y = 1
 // camera.position.z = 2
 
-camera.position.set(0.8, 1.4, 1.0)
+camera.position.set(1, 2, 5)
 
 /** [3]Renderer (Trình kết xuất): là một đối tượng Three.js để kết xuất các đối tượng trên màn hình.
  *  Trình kết xuất sẽ sử dụng WebGL hoặc các công nghệ tương tự để tạo ra các hình ảnh 3D.
  */
-const renderer: any = new THREE.WebGLRenderer()
+const renderer = new THREE.WebGLRenderer()
 //renderer.physicallyCorrectLights = true //deprecated
 // renderer.useLegacyLights = false //use this instead of setting physicallyCorrectLights=true property
-renderer.shadowMap.enabled = true
+// renderer.shadowMap.enabled = true
 // renderer.outputEncoding = THREE.sRGBEncoding
 renderer.setSize(window.innerWidth, window.innerHeight)
 
@@ -104,114 +98,38 @@ document.body.appendChild(renderer.domElement)
 
 const controls = new OrbitControls(camera, renderer.domElement)
 // cho phép các hiệu ứng nhấp nháy và giảm tốc khi di chuyển camera, giúp tạo ra một trải nghiệm mượt mà hơn khi tương tác với các phần tử 3D.
-controls.enableDamping = true
-controls.target.set(0, 1, 0)
+// controls.enableDamping = true
+// controls.target.set(0, 1, 0)
 // controls.addEventListener('change', render) // this line is uneccessary if you are re-render
 
 // const sceneMeshes: THREE.Mesh[] = []
-let sceneMeshes: any = []
+// let sceneMeshes: any = []
 
-const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(25, 25)
-const texture = new THREE.TextureLoader().load('img/grid.png')
-const plane = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({ map: texture }))
-plane.rotateX(-Math.PI / 2)
-plane.receiveShadow = true
-scene.add(plane)
-sceneMeshes.push(plane)
-
-let mixer: THREE.AnimationMixer
-let modelReady = false
-let modelMesh: THREE.Object3D
-const animationActions: THREE.AnimationAction[] = []
-let activeAction: THREE.AnimationAction
-let lastAction: THREE.AnimationAction
-
-const gltfLoader = new GLTFLoader()
-
-gltfLoader.load(
-    'models/vanguard.glb',
-    (gltf) => {
-        gltf.scene.traverse(function (child) {
-            if ((child as THREE.Mesh).isMesh) {
-                let m = child as THREE.Mesh
-                m.castShadow = true
-                m.frustumCulled = false // zoom to object and dont make it through out the object
-            }
-        })
-
-        mixer = new THREE.AnimationMixer(gltf.scene)
-
-        let animationAction = mixer.clipAction((gltf as any).animations[0])
-        animationActions.push(animationAction)
-        animationsFolder.add(animations, 'default')
-        activeAction = animationActions[0]
-
-        scene.add(gltf.scene)
-        modelMesh = gltf.scene
-
-        //add an animation from another file
-        gltfLoader.load(
-            'models/vanguard@samba.glb',
-            (gltf) => {
-                console.log('loaded samba')
-                const animationAction = mixer.clipAction((gltf as any).animations[0])
-                animationActions.push(animationAction)
-                animationsFolder.add(animations, 'samba')
-
-                //add an animation from another file
-                gltfLoader.load(
-                    'models/vanguard@bellydance.glb',
-                    (gltf) => {
-                        console.log('loaded bellydance')
-                        const animationAction = mixer.clipAction((gltf as any).animations[0])
-                        animationActions.push(animationAction)
-                        animationsFolder.add(animations, 'bellydance')
-
-                        //add an animation from another file
-                        gltfLoader.load(
-                            'models/vanguard@goofyrunning.glb',
-                            (gltf) => {
-                                console.log('loaded goofyrunning')
-                                ;(gltf as any).animations[0].tracks.shift() //delete the specific track that moves the object forward while running
-                                const animationAction = mixer.clipAction(
-                                    (gltf as any).animations[0]
-                                )
-                                animationActions.push(animationAction)
-                                animationsFolder.add(animations, 'goofyrunning')
-
-                                modelReady = true
-                            },
-                            (xhr) => {
-                                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-                            },
-                            (error) => {
-                                console.log(error)
-                            }
-                        )
-                    },
-                    (xhr) => {
-                        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-                    },
-                    (error) => {
-                        console.log(error)
-                    }
-                )
-            },
-            (xhr) => {
-                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-            },
-            (error) => {
-                console.log(error)
-            }
-        )
-    },
-    (xhr) => {
-        console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-    },
-    (error) => {
-        console.log(error)
-    }
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0xaec6cf, wireframe: true })
 )
+
+floor.rotateX(-Math.PI / 2)
+scene.add(floor)
+
+const geometry = new THREE.BoxGeometry()
+// the cube used for .lerp
+const cube1 = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+)
+cube1.position.y = 0.5
+scene.add(cube1)
+
+//the cube used for .lerpVectors
+const cube2: THREE.Mesh = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+)
+cube2.position.y = 0.5
+scene.add(cube2)
+
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
     // 1. Cập nhật tỷ lệ khung hình (aspect) của camera theo kích thước mới của window:
@@ -229,61 +147,36 @@ function onWindowResize() {
 }
 
 const raycaster = new THREE.Raycaster()
-const targetQuaternion = new THREE.Quaternion()
-
-renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
+let v1 = new THREE.Vector3(2, 0.5, 2)
+let v2 = new THREE.Vector3(0, 0.5, 0)
 
 const mouse = new THREE.Vector2()
 
 function onDoubleClick(event: MouseEvent) {
-    const mouse = {
-        x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
-        y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
-    }
+    // const mouse = {
+    //     x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+    //     y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
+    // }
+
+    mouse.set(
+        (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+        -(event.clientY / renderer.domElement.clientHeight) * 2 + 1
+    )
 
     raycaster.setFromCamera(mouse, camera)
 
-    const intersects = raycaster.intersectObjects(sceneMeshes, false)
+    const intersects = raycaster.intersectObject(floor, false)
 
     if (intersects.length > 0) {
-        const p = intersects[0].point
-        const distance = modelMesh.position.distanceTo(p)
+        v1 = intersects[0].point
+        v1.y += 0.5 //raise it so it appears to sit on grid
+        //console.log(v1)
 
         // modelMesh.lookAt(p)
-
-        const rotationMatrix = new THREE.Matrix4()
-        rotationMatrix.lookAt(p, modelMesh.position, modelMesh.up)
-        targetQuaternion.setFromRotationMatrix(rotationMatrix)
-
-        setAction(animationActions[3])
-        TWEEN.removeAll()
-        new TWEEN.Tween(modelMesh.position)
-            .to(
-                {
-                    x: p.x,
-                    y: p.y,
-                    z: p.z,
-                },
-                (1000 / 2) * distance //walks 2 meters a second * the distance
-            )
-            .onUpdate(() => {
-                controls.target.set(
-                    modelMesh.position.x,
-                    modelMesh.position.y + 1,
-                    modelMesh.position.z
-                )
-                // light follow the object
-                light1.target = modelMesh
-                light2.target = modelMesh
-            })
-            .start()
-            .onComplete(() => {
-                setAction(animationActions[2])
-                activeAction.loop = THREE.LoopOnce
-
-            })
     }
 }
+
+renderer.domElement.addEventListener('dblclick', onDoubleClick, false)
 
 // ===================================================================================
 
@@ -329,45 +222,32 @@ function onDoubleClick(event: MouseEvent) {
 const stats = Stats()
 document.body.appendChild(stats.dom)
 
-const animations = {
-    default: function () {
-        setAction(animationActions[0])
-    },
-    samba: function () {
-        setAction(animationActions[1])
-    },
-    bellydance: function () {
-        setAction(animationActions[2])
-    },
-    goofyrunning: function () {
-        setAction(animationActions[3])
-    },
-}
-
-const setAction = (toAction: THREE.AnimationAction) => {
-    if (toAction != activeAction) {
-        lastAction = activeAction
-        activeAction = toAction
-        //lastAction.stop()
-        lastAction.fadeOut(0.2)
-        activeAction.reset()
-        activeAction.fadeIn(0.2)
-        activeAction.play()
-    }
+const data = {
+    lerpAlpha: 0.1,
+    lerpVectorsAlpha: 1.0,
 }
 
 const gui = new GUI()
-const animationsFolder = gui.addFolder('Animations')
-animationsFolder.open()
 
-const clock = new THREE.Clock()
-let delta = 0
+const lerpFolder = gui.addFolder('.lerp')
+lerpFolder.add(data, 'lerpAlpha', 0, 1.0, 0.01)
+lerpFolder.open()
+
+const lerpVectorsFolder = gui.addFolder('.lerpVectors')
+lerpVectorsFolder.add(data, 'lerpVectorsAlpha', 0, 1.0, 0.01)
+lerpVectorsFolder.open()
 
 // Một hàm animate để cập nhật trạng thái của các đối tượng 3D trong mỗi khung hình (frame)
 var animate = function () {
     requestAnimationFrame(animate)
 
     controls.update()
+
+    cube1.position.lerp(v1, data.lerpAlpha)
+    cube2.position.lerpVectors(v1, v2, data.lerpVectorsAlpha)
+    controls.target.copy(cube1.position)
+
+    // controls.target.lerp(v1, .01)
 
     // helper.update()
 
@@ -377,18 +257,6 @@ var animate = function () {
 
     // trackball controls needs to be updated in the animation loop before it will work
     // controls.update()
-
-    if (modelReady) {
-        delta = clock.getDelta()
-        mixer.update(delta)
-
-        // the object turn down
-        if (!modelMesh.quaternion.equals(targetQuaternion)) {
-            modelMesh.quaternion.rotateTowards(targetQuaternion, delta * 10)
-        }
-    }
-
-    TWEEN.update()
 
     // if (sceneMeshes.length > 1) {
     //     sceneMeshes[1].rotation.x += 0.002
